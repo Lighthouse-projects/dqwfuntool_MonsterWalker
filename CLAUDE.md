@@ -75,3 +75,15 @@ dqwfuntool内で他アプリとSupabaseプロジェクトを共用。以下の�
 avatars/{user_id}/avatar.{ext}
 mw_screenshots/{user_id}/{strategy_no}/{member_order}_{front|back}.{ext}
 ```
+
+## TODO
+
+### マスタデータ作成
+- [ ] mw_mst_monsters（モンスター）のINSERT文を作成
+  - モンスター名リストの取得が必要
+  - 4.1_マスタデータ初期設定.md に追記予定
+
+### 完了済み
+- [x] mw_mst_jobs（職業）のINSERT文作成（24職）
+- [x] mw_mst_weapons（武器）のINSERT文作成（星5武器 183件）
+- [x] release_dateをNULL許可に変更（monsters, weapons両方）
