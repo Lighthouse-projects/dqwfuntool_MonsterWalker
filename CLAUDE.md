@@ -6,10 +6,6 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **MonsterWalker（モンスターウォーカー）** - ドラクエウォークのモンスター攻略情報を登録・共有するファンツールアプリ。
 
-## 現在のフェーズ
-
-設計書作成フェーズ（実装コードはまだなし）
-
 ## 技術スタック
 
 - **フロントエンド**: React Native + Expo
@@ -46,12 +42,14 @@ dqwfuntool内で他アプリとSupabaseプロジェクトを共用。以下の�
 
 | ファイル | 内容 |
 |---------|------|
-| `documents/1_要件定義書.md` | 機能要件、画面構成 |
+| `documents/1_要件定義書.md` | 機能要件、画面構成、法的事項 |
 | `documents/2_アーキテクチャ設計書.md` | 技術スタック、システム構成、キャッシュ設計 |
-| `documents/3_機能設計書.md` | 各機能の詳細設計（F001〜F011） |
+| `documents/3_機能設計書.md` | 各機能の詳細設計（F001〜F013） |
 | `documents/4_データベース設計書.md` | テーブル定義、DDL、RLSポリシー、Storage設計 |
 | `documents/4.1_マスタデータ初期設定INSERT文.md` | マスタデータINSERT文 |
 | `documents/5_UI設計書.md` | 画面レイアウト、デザイン仕様 |
+| `documents/6_利用規約.md` | 利用規約（21項目の禁止事項含む） |
+| `documents/7_プライバシーポリシー.md` | プライバシーポリシー |
 
 ## 命名規則
 
