@@ -45,7 +45,7 @@ dqwfuntool内で他アプリとSupabaseプロジェクトを共用。以下の�
 | `documents/2_アーキテクチャ設計書.md` | 技術スタック、システム構成、キャッシュ設計 |
 | `documents/3_機能設計書.md` | 各機能の詳細設計 |
 | `documents/4_データベース設計書.md` | テーブル定義、DDL、RLSポリシー、Storage設計 |
-| `documents/4.1_マスタデータ初期設定.md` | マスタデータINSERT文 |
+| `documents/4.1_マスタデータ初期設定INSERT文.md` | マスタデータINSERT文 |
 | `documents/7_UI設計書.md` | 画面レイアウト、デザイン仕様 |
 
 ## 命名規則
