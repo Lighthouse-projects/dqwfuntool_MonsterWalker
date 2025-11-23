@@ -6,6 +6,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **MonsterWalker（モンスターウォーカー）** - ドラクエウォークのモンスター攻略情報を登録・共有するファンツールアプリ。
 
+## 現在のフェーズ
+
+設計書作成フェーズ（実装コードはまだなし）
+
 ## 技術スタック
 
 - **フロントエンド**: React Native + Expo
@@ -32,6 +36,7 @@ dqwfuntool内で他アプリとSupabaseプロジェクトを共用。以下の�
 - `mw_strategies` - 攻略情報
 - `mw_strategy_members` - パーティメンバー（4人分）
 - `mw_likes`, `mw_favorites_*`, `mw_reports` - ユーザーアクション
+- `mw_requests` - 要望
 
 ### セキュリティ
 - Row Level Security (RLS) でデータ保護
@@ -43,7 +48,7 @@ dqwfuntool内で他アプリとSupabaseプロジェクトを共用。以下の�
 |---------|------|
 | `documents/1_要件定義書.md` | 機能要件、画面構成 |
 | `documents/2_アーキテクチャ設計書.md` | 技術スタック、システム構成、キャッシュ設計 |
-| `documents/3_機能設計書.md` | 各機能の詳細設計 |
+| `documents/3_機能設計書.md` | 各機能の詳細設計（F001〜F011） |
 | `documents/4_データベース設計書.md` | テーブル定義、DDL、RLSポリシー、Storage設計 |
 | `documents/4.1_マスタデータ初期設定INSERT文.md` | マスタデータINSERT文 |
 | `documents/7_UI設計書.md` | 画面レイアウト、デザイン仕様 |
@@ -60,9 +65,12 @@ dqwfuntool内で他アプリとSupabaseプロジェクトを共用。以下の�
 - UUID型の場合: `user_id`
 
 ### ENUM型
+- `monster_category_enum`: hokora / megamon / gigamon
 - `strategy_type_enum`: oneshot / semiauto / auto
 - `role_type_enum`: attacker / healer / tank / buffer / any
 - `job_rank_enum`: basic / advanced / special
+- `request_category_enum`: monster / weapon / job / bug / feature / question / other
+- `request_status_enum`: pending / in_progress / completed / rejected
 
 ## Supabase Storage
 
@@ -76,14 +84,9 @@ avatars/{user_id}/avatar.{ext}
 mw_screenshots/{user_id}/{strategy_no}/{member_order}_{front|back}.{ext}
 ```
 
-## TODO
+## マスタデータ
 
-### マスタデータ作成
-- [ ] mw_mst_monsters（モンスター）のINSERT文を作成
-  - モンスター名リストの取得が必要
-  - 4.1_マスタデータ初期設定.md に追記予定
-
-### 完了済み
-- [x] mw_mst_jobs（職業）のINSERT文作成（24職）
-- [x] mw_mst_weapons（武器）のINSERT文作成（星5武器 183件）
-- [x] release_dateをNULL許可に変更（monsters, weapons両方）
+### 登録済み
+- mw_mst_jobs: 24職（基本職8、上級職8、特級職8）
+- mw_mst_weapons: 199件（星5武器）
+- mw_mst_monsters: 262件（ギガモン12、メガモン99、ほこら151）
