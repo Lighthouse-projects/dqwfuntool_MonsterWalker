@@ -12,6 +12,7 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
+import Constants from 'expo-constants';
 import { colors, fontSize, spacing } from '../constants/colors';
 import { useAuth } from '../contexts/AuthContext';
 import { deleteAccount } from '../api/account';
@@ -222,7 +223,7 @@ export default function MyPageScreen() {
       </View>
 
       {/* バージョン情報 */}
-      <Text style={styles.versionText}>Version 1.0.0</Text>
+      <Text style={styles.versionText}>Version {Constants.expoConfig?.version ?? '1.0.0'}</Text>
     </ScrollView>
   );
 }

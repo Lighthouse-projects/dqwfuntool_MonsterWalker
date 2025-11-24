@@ -76,6 +76,28 @@ src/
 UI Components → React Query → AsyncStorage (キャッシュ) → Supabase
 ```
 
+### ナビゲーション構造
+```
+RootNavigator (Stack)
+├── Main (TabNavigator)
+│   ├── Home            # 検索・一覧
+│   ├── Favorites       # お気に入り
+│   ├── Register        # 攻略情報登録（StrategyRegisterScreen）
+│   ├── Ranking         # ランキング
+│   └── MyPage          # マイページ
+└── Modal Screens
+    ├── Login / SignUp / ForgotPassword
+    ├── Terms / PrivacyPolicy
+    ├── StrategyDetail / StrategyEdit
+    ├── MyStrategies / LikedStrategies
+    └── RequestSubmit / RequestList
+```
+
+### 共通コンポーネントパターン
+- **StrategyForm**: 攻略情報の登録/編集で共通利用（mode: 'create' | 'edit'）
+- **SelectModal**: マスタ選択用モーダル（モンスター、武器、職業）
+- **PartyMemberInput**: パーティメンバー入力（4人分）
+
 ### Supabaseプロジェクト共用
 dqwfuntool内で他アプリとSupabaseプロジェクトを共用。以下のテーブルは共用：
 - `auth.users` - ユーザー認証（Supabase Auth標準）
@@ -123,6 +145,13 @@ dqwfuntool内で他アプリとSupabaseプロジェクトを共用。以下の�
 - `job_rank_enum`: basic / advanced / special
 - `request_category_enum`: monster / weapon / job / bug / feature / question / other
 - `request_status_enum`: pending / in_progress / completed / rejected
+
+## Supabase Edge Functions
+
+```
+supabase/functions/
+└── delete-account/     # アカウント削除（関連データ一括削除）
+```
 
 ## Supabase Storage
 
