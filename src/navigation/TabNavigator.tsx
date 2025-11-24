@@ -9,7 +9,15 @@ import RegisterScreen from '../screens/RegisterScreen';
 import RankingScreen from '../screens/RankingScreen';
 import MyPageScreen from '../screens/MyPageScreen';
 
-const Tab = createBottomTabNavigator();
+export type TabParamList = {
+  Home: { monster_no?: number; weapon_no?: number } | undefined;
+  Favorites: undefined;
+  Register: undefined;
+  Ranking: undefined;
+  MyPage: undefined;
+};
+
+const Tab = createBottomTabNavigator<TabParamList>();
 
 export default function TabNavigator() {
   return (

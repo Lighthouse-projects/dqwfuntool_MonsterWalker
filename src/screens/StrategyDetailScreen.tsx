@@ -16,6 +16,7 @@ import { fetchStrategy, strategyTypeLabels, type Strategy, type StrategyMember }
 import { fetchMonsters, fetchWeapons, fetchJobs, monsterCategoryLabels, type Monster, type Weapon, type Job } from '../api/masters';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../config/supabase';
+import { checkFavoriteStrategy, addFavoriteStrategy, removeFavoriteStrategy } from '../api/favorites';
 import type { RootStackParamList } from '../navigation/RootNavigator';
 
 type RouteParams = RouteProp<RootStackParamList, 'StrategyDetail'>;
@@ -40,6 +41,8 @@ export default function StrategyDetailScreen() {
   const [isLiked, setIsLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
   const [likeLoading, setLikeLoading] = useState(false);
+  const [isFavorite, setIsFavorite] = useState(false);
+  const [favoriteLoading, setFavoriteLoading] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -86,7 +89,7 @@ export default function StrategyDetailScreen() {
 
       setLikeCount(strategyData.strategy.like_count);
 
-      // いいね状態を確認
+      // いいね・お気に入り状態を確認
       if (user) {
         const { data: likeData } = await supabase
           .from('mw_likes')
@@ -96,6 +99,10 @@ export default function StrategyDetailScreen() {
           .single();
 
         setIsLiked(!!likeData);
+
+        // お気に入り状態を確認
+        const isFav = await checkFavoriteStrategy(user.id, strategy_no);
+        setIsFavorite(isFav);
       }
     } catch (error) {
       console.error('Load error:', error);
@@ -156,6 +163,41 @@ export default function StrategyDetailScreen() {
       Alert.alert('エラー', 'いいねの処理に失敗しました');
     } finally {
       setLikeLoading(false);
+    }
+  };
+
+  const handleFavorite = async () => {
+    if (!user) {
+      Alert.alert('ログインが必要です', 'お気に入り登録するにはログインしてください');
+      return;
+    }
+
+    if (favoriteLoading) return;
+
+    setFavoriteLoading(true);
+    try {
+      if (isFavorite) {
+        // お気に入り解除
+        const result = await removeFavoriteStrategy(user.id, strategy_no);
+        if (result.success) {
+          setIsFavorite(false);
+        } else {
+          Alert.alert('エラー', result.error || 'お気に入り解除に失敗しました');
+        }
+      } else {
+        // お気に入り追加
+        const result = await addFavoriteStrategy(user.id, strategy_no);
+        if (result.success) {
+          setIsFavorite(true);
+        } else {
+          Alert.alert('エラー', result.error || 'お気に入り登録に失敗しました');
+        }
+      }
+    } catch (error) {
+      console.error('Favorite error:', error);
+      Alert.alert('エラー', 'お気に入りの処理に失敗しました');
+    } finally {
+      setFavoriteLoading(false);
     }
   };
 
@@ -282,8 +324,8 @@ export default function StrategyDetailScreen() {
         </View>
       </ScrollView>
 
-      {/* いいねバー */}
-      <View style={styles.likeBar}>
+      {/* アクションバー */}
+      <View style={styles.actionBar}>
         <TouchableOpacity
           style={[styles.likeButton, isLiked && styles.likeButtonActive]}
           onPress={handleLike}
@@ -300,6 +342,27 @@ export default function StrategyDetailScreen() {
               />
               <Text style={[styles.likeButtonText, isLiked && styles.likeButtonTextActive]}>
                 {likeCount}
+              </Text>
+            </>
+          )}
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.favoriteButton, isFavorite && styles.favoriteButtonActive]}
+          onPress={handleFavorite}
+          disabled={favoriteLoading}
+        >
+          {favoriteLoading ? (
+            <ActivityIndicator size="small" color={isFavorite ? colors.background : colors.primary} />
+          ) : (
+            <>
+              <Ionicons
+                name={isFavorite ? 'bookmark' : 'bookmark-outline'}
+                size={24}
+                color={isFavorite ? colors.background : colors.primary}
+              />
+              <Text style={[styles.favoriteButtonText, isFavorite && styles.favoriteButtonTextActive]}>
+                {isFavorite ? '登録済み' : 'お気に入り'}
               </Text>
             </>
           )}
@@ -483,34 +546,58 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     backgroundColor: colors.backgroundSecondary,
   },
-  // いいねバー
-  likeBar: {
+  // アクションバー
+  actionBar: {
     backgroundColor: colors.background,
     padding: spacing.md,
     borderTopWidth: 1,
     borderTopColor: colors.border,
-    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: spacing.md,
   },
   likeButton: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.xl,
+    paddingHorizontal: spacing.lg,
     borderRadius: 24,
     borderWidth: 2,
     borderColor: colors.error,
-    gap: spacing.sm,
+    gap: spacing.xs,
   },
   likeButtonActive: {
     backgroundColor: colors.error,
     borderColor: colors.error,
   },
   likeButtonText: {
-    fontSize: fontSize.md,
+    fontSize: fontSize.sm,
     fontWeight: 'bold',
     color: colors.error,
   },
   likeButtonTextActive: {
+    color: colors.background,
+  },
+  favoriteButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.lg,
+    borderRadius: 24,
+    borderWidth: 2,
+    borderColor: colors.primary,
+    gap: spacing.xs,
+  },
+  favoriteButtonActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  favoriteButtonText: {
+    fontSize: fontSize.sm,
+    fontWeight: 'bold',
+    color: colors.primary,
+  },
+  favoriteButtonTextActive: {
     color: colors.background,
   },
 });

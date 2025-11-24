@@ -7,23 +7,36 @@ import {
   FlatList,
   ActivityIndicator,
   RefreshControl,
+  Alert,
+  TextInput,
+  Modal,
 } from 'react-native';
-import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { useNavigation, useFocusEffect, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { TabParamList } from '../navigation/TabNavigator';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, fontSize, spacing } from '../constants/colors';
 import { fetchMonsters, fetchWeapons, type Monster, type Weapon } from '../api/masters';
 import { searchStrategies, type StrategyListItem, type SearchParams } from '../api/strategies';
+import { addFavoriteSearch } from '../api/favorites';
+import { useAuth } from '../contexts/AuthContext';
 import SelectModal from '../components/common/SelectModal';
 import StrategyCard from '../components/features/StrategyCard';
 import type { RootStackParamList } from '../navigation/RootNavigator';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
+type HomeRouteProp = RouteProp<TabParamList, 'Home'>;
 
 const ITEMS_PER_PAGE = 20;
 
 export default function HomeScreen() {
   const navigation = useNavigation<NavigationProp>();
+  const route = useRoute<HomeRouteProp>();
+  const { user } = useAuth();
+
+  // ナビゲーションパラメータから検索条件を取得
+  const routeMonsterNo = route.params?.monster_no;
+  const routeWeaponNo = route.params?.weapon_no;
 
   // フィルター状態
   const [selectedMonster, setSelectedMonster] = useState<Monster | null>(null);
@@ -32,6 +45,9 @@ export default function HomeScreen() {
   // モーダル状態
   const [showMonsterModal, setShowMonsterModal] = useState(false);
   const [showWeaponModal, setShowWeaponModal] = useState(false);
+  const [showSaveModal, setShowSaveModal] = useState(false);
+  const [saveName, setSaveName] = useState('');
+  const [saving, setSaving] = useState(false);
 
   // マスタデータ
   const [monsters, setMonsters] = useState<Monster[]>([]);
@@ -45,23 +61,6 @@ export default function HomeScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [page, setPage] = useState(0);
-
-  // マスタデータ読み込み
-  const loadMasters = async () => {
-    setLoadingMasters(true);
-    try {
-      const [monstersData, weaponsData] = await Promise.all([
-        fetchMonsters(),
-        fetchWeapons(),
-      ]);
-      setMonsters(monstersData);
-      setWeapons(weaponsData);
-    } catch (error) {
-      console.error('Failed to load masters:', error);
-    } finally {
-      setLoadingMasters(false);
-    }
-  };
 
   // 検索実行（フィルター値を直接受け取る）
   const executeSearch = async (
@@ -103,12 +102,44 @@ export default function HomeScreen() {
     }
   };
 
-  // 初期読み込み
+  // 初期読み込み＆ナビゲーションパラメータによるフィルター適用
   useFocusEffect(
     useCallback(() => {
-      loadMasters();
-      executeSearch(true, null, null);
-    }, [])
+      const initializeScreen = async () => {
+        // マスタデータ読み込み
+        setLoadingMasters(true);
+        try {
+          const [monstersData, weaponsData] = await Promise.all([
+            fetchMonsters(),
+            fetchWeapons(),
+          ]);
+          setMonsters(monstersData);
+          setWeapons(weaponsData);
+
+          // ナビゲーションパラメータがある場合はフィルターを適用
+          let filterMonster: Monster | null = null;
+          let filterWeapon: Weapon | null = null;
+
+          if (routeMonsterNo) {
+            filterMonster = monstersData.find(m => m.monster_no === routeMonsterNo) || null;
+            setSelectedMonster(filterMonster);
+          }
+          if (routeWeaponNo) {
+            filterWeapon = weaponsData.find(w => w.weapon_no === routeWeaponNo) || null;
+            setSelectedWeapon(filterWeapon);
+          }
+
+          // 検索実行
+          executeSearch(true, filterMonster, filterWeapon);
+        } catch (error) {
+          console.error('Failed to load masters:', error);
+        } finally {
+          setLoadingMasters(false);
+        }
+      };
+
+      initializeScreen();
+    }, [routeMonsterNo, routeWeaponNo])
   );
 
   // フィルター変更時に再検索
@@ -147,6 +178,53 @@ export default function HomeScreen() {
   // 詳細画面へ遷移
   const handleCardPress = (item: StrategyListItem) => {
     navigation.navigate('StrategyDetail', { strategy_no: item.strategy_no });
+  };
+
+  // 検索条件お気に入り保存モーダルを開く
+  const handleOpenSaveModal = () => {
+    if (!user) {
+      Alert.alert('ログインが必要です', '検索条件を保存するにはログインしてください');
+      return;
+    }
+    if (!selectedMonster && !selectedWeapon) {
+      Alert.alert('検索条件を選択してください', 'モンスターまたは武器を選択してから保存してください');
+      return;
+    }
+    // デフォルト名を生成
+    const defaultName = [
+      selectedMonster?.monster_name,
+      selectedWeapon?.weapon_name,
+    ].filter(Boolean).join(' × ') || '検索条件';
+    setSaveName(defaultName);
+    setShowSaveModal(true);
+  };
+
+  // 検索条件をお気に入りに保存
+  const handleSaveSearch = async () => {
+    if (!user || !saveName.trim()) return;
+
+    setSaving(true);
+    try {
+      const result = await addFavoriteSearch(
+        user.id,
+        selectedMonster?.monster_no || null,
+        selectedWeapon?.weapon_no || null,
+        saveName.trim()
+      );
+
+      if (result.success) {
+        Alert.alert('保存しました', '検索条件をお気に入りに保存しました');
+        setShowSaveModal(false);
+        setSaveName('');
+      } else {
+        Alert.alert('エラー', result.error || '保存に失敗しました');
+      }
+    } catch (error) {
+      console.error('Save search error:', error);
+      Alert.alert('エラー', '保存に失敗しました');
+    } finally {
+      setSaving(false);
+    }
   };
 
   // モンスター選択用オプション
@@ -263,6 +341,18 @@ export default function HomeScreen() {
               </TouchableOpacity>
             )}
           </TouchableOpacity>
+          {/* お気に入り保存ボタン */}
+          <TouchableOpacity
+            style={[styles.saveButton, hasFilters && styles.saveButtonActive]}
+            onPress={handleOpenSaveModal}
+            disabled={!hasFilters}
+          >
+            <Ionicons
+              name="bookmark-outline"
+              size={16}
+              color={hasFilters ? colors.primary : colors.textSecondary}
+            />
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -328,6 +418,50 @@ export default function HomeScreen() {
         onClose={() => setShowWeaponModal(false)}
         searchable
       />
+
+      {/* 検索条件保存モーダル */}
+      <Modal
+        visible={showSaveModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowSaveModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>検索条件を保存</Text>
+            <Text style={styles.modalSubtitle}>
+              {[selectedMonster?.monster_name, selectedWeapon?.weapon_name].filter(Boolean).join(' × ')}
+            </Text>
+            <TextInput
+              style={styles.modalInput}
+              value={saveName}
+              onChangeText={setSaveName}
+              placeholder="保存名を入力"
+              placeholderTextColor={colors.textSecondary}
+              maxLength={100}
+            />
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={styles.modalCancelButton}
+                onPress={() => setShowSaveModal(false)}
+              >
+                <Text style={styles.modalCancelButtonText}>キャンセル</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalSaveButton, !saveName.trim() && styles.modalSaveButtonDisabled]}
+                onPress={handleSaveSearch}
+                disabled={!saveName.trim() || saving}
+              >
+                {saving ? (
+                  <ActivityIndicator size="small" color={colors.background} />
+                ) : (
+                  <Text style={styles.modalSaveButtonText}>保存</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -425,5 +559,87 @@ const styles = StyleSheet.create({
     fontSize: fontSize.sm,
     color: colors.primary,
     fontWeight: '600',
+  },
+  // お気に入り保存ボタン
+  saveButton: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.backgroundSecondary,
+    borderRadius: 8,
+  },
+  saveButtonActive: {
+    backgroundColor: colors.background,
+    borderWidth: 1,
+    borderColor: colors.primary,
+  },
+  // モーダル
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: spacing.lg,
+  },
+  modalContent: {
+    backgroundColor: colors.background,
+    borderRadius: 16,
+    padding: spacing.lg,
+    width: '100%',
+    maxWidth: 320,
+  },
+  modalTitle: {
+    fontSize: fontSize.lg,
+    fontWeight: 'bold',
+    color: colors.textPrimary,
+    textAlign: 'center',
+    marginBottom: spacing.xs,
+  },
+  modalSubtitle: {
+    fontSize: fontSize.sm,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    marginBottom: spacing.md,
+  },
+  modalInput: {
+    backgroundColor: colors.backgroundSecondary,
+    borderRadius: 8,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    fontSize: fontSize.md,
+    color: colors.textPrimary,
+    marginBottom: spacing.lg,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  modalCancelButton: {
+    flex: 1,
+    paddingVertical: spacing.sm,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: 'center',
+  },
+  modalCancelButtonText: {
+    fontSize: fontSize.md,
+    color: colors.textSecondary,
+  },
+  modalSaveButton: {
+    flex: 1,
+    paddingVertical: spacing.sm,
+    borderRadius: 8,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+  },
+  modalSaveButtonDisabled: {
+    backgroundColor: colors.textSecondary,
+  },
+  modalSaveButtonText: {
+    fontSize: fontSize.md,
+    fontWeight: '600',
+    color: colors.background,
   },
 });
