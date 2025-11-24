@@ -9,6 +9,7 @@ import ForgotPasswordScreen from '../screens/auth/ForgotPasswordScreen';
 import TermsScreen from '../screens/auth/TermsScreen';
 import PrivacyPolicyScreen from '../screens/auth/PrivacyPolicyScreen';
 import ProfileEditScreen from '../screens/ProfileEditScreen';
+import StrategyDetailScreen from '../screens/StrategyDetailScreen';
 
 export type RootStackParamList = {
   Main: undefined;
@@ -18,6 +19,7 @@ export type RootStackParamList = {
   Terms: undefined;
   PrivacyPolicy: undefined;
   ProfileEdit: undefined;
+  StrategyDetail: { strategy_no: number };
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -76,6 +78,11 @@ export default function RootNavigator() {
           name="ProfileEdit"
           component={ProfileEditScreen}
           options={{ title: 'プロフィール編集' }}
+        />
+        <Stack.Screen
+          name="StrategyDetail"
+          component={StrategyDetailScreen}
+          options={{ title: '攻略情報' }}
         />
       </Stack.Group>
     </Stack.Navigator>

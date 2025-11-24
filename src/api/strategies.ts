@@ -230,3 +230,121 @@ export async function fetchStrategy(strategyNo: number): Promise<{
     return null;
   }
 }
+
+// 検索結果の型
+export interface StrategyListItem {
+  strategy_no: number;
+  user_id: string;
+  monster_no: number;
+  strategy_type: StrategyType;
+  like_count: number;
+  created_at: string;
+  monster_name: string;
+  monster_category: string;
+  nickname: string | null;
+  avatar_url: string | null;
+}
+
+// 検索パラメータ
+export interface SearchParams {
+  monster_no?: number | null;
+  weapon_no?: number | null;
+  limit?: number;
+  offset?: number;
+}
+
+// 攻略情報一覧取得（検索）
+export async function searchStrategies(
+  params: SearchParams = {}
+): Promise<{ data: StrategyListItem[]; count: number }> {
+  const { monster_no, weapon_no, limit = 20, offset = 0 } = params;
+
+  try {
+    // 基本クエリ（profilesはFKがないため別途取得）
+    let query = supabase
+      .from('mw_strategies')
+      .select(`
+        strategy_no,
+        user_id,
+        monster_no,
+        strategy_type,
+        like_count,
+        created_at,
+        mw_mst_monsters!inner (
+          monster_name,
+          monster_category
+        )
+      `, { count: 'exact' })
+      .eq('is_deleted', false);
+
+    // モンスターフィルタ
+    if (monster_no) {
+      query = query.eq('monster_no', monster_no);
+    }
+
+    // 武器フィルタ（サブクエリで対応）
+    if (weapon_no) {
+      // 武器を使用しているstrategy_noを取得
+      const { data: strategyNos } = await supabase
+        .from('mw_strategy_members')
+        .select('strategy_no')
+        .eq('weapon_no', weapon_no);
+
+      if (strategyNos && strategyNos.length > 0) {
+        const nos = strategyNos.map((s) => s.strategy_no);
+        query = query.in('strategy_no', nos);
+      } else {
+        // 該当なし
+        return { data: [], count: 0 };
+      }
+    }
+
+    // いいね数順でソート、ページネーション
+    const { data, error, count } = await query
+      .order('like_count', { ascending: false })
+      .order('created_at', { ascending: false })
+      .range(offset, offset + limit - 1);
+
+    if (error) {
+      console.error('Search strategies error:', error);
+      return { data: [], count: 0 };
+    }
+
+    // ユーザーIDを収集してプロフィール情報を一括取得
+    const userIds = [...new Set((data || []).map((item: any) => item.user_id))];
+    let profilesMap: Record<string, { nickname: string | null; avatar_url: string | null }> = {};
+
+    if (userIds.length > 0) {
+      const { data: profilesData } = await supabase
+        .from('profiles')
+        .select('user_id, nickname, avatar_url')
+        .in('user_id', userIds);
+
+      if (profilesData) {
+        profilesMap = profilesData.reduce((acc, p) => {
+          acc[p.user_id] = { nickname: p.nickname, avatar_url: p.avatar_url };
+          return acc;
+        }, {} as Record<string, { nickname: string | null; avatar_url: string | null }>);
+      }
+    }
+
+    // データ整形
+    const formattedData: StrategyListItem[] = (data || []).map((item: any) => ({
+      strategy_no: item.strategy_no,
+      user_id: item.user_id,
+      monster_no: item.monster_no,
+      strategy_type: item.strategy_type,
+      like_count: item.like_count,
+      created_at: item.created_at,
+      monster_name: item.mw_mst_monsters?.monster_name || '',
+      monster_category: item.mw_mst_monsters?.monster_category || '',
+      nickname: profilesMap[item.user_id]?.nickname || null,
+      avatar_url: profilesMap[item.user_id]?.avatar_url || null,
+    }));
+
+    return { data: formattedData, count: count || 0 };
+  } catch (error) {
+    console.error('Search strategies error:', error);
+    return { data: [], count: 0 };
+  }
+}
