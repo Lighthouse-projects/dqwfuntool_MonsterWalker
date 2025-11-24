@@ -98,6 +98,18 @@ RootNavigator (Stack)
 - **SelectModal**: マスタ選択用モーダル（モンスター、武器、職業）
 - **PartyMemberInput**: パーティメンバー入力（4人分）
 
+### React Queryキャッシュ設計
+- **マスタデータ** (`useMasters.ts`): staleTime 30分、gcTime 1時間
+  - `useMonsters()`, `useWeapons()`, `useJobs()`, `useMasters()`
+- **攻略情報詳細** (`useStrategy.ts`): staleTime 5分、gcTime 30分
+  - `useStrategy(strategyNo)` - 詳細画面用（キャッシュで即座に表示）
+  - `useInvalidateStrategy()` - 編集・削除後のキャッシュ無効化
+
+### 画面データ取得パターン
+- **初回のみ取得**: `useEffect`を使用（Home, Favorites, Ranking, MyStrategies, LikedStrategies）
+- **フォーカス時再取得**: `useFocusEffect`を使用（必要な画面のみ）
+- **Pull to Refresh**: RefreshControlで手動再取得
+
 ### Supabaseプロジェクト共用
 dqwfuntool内で他アプリとSupabaseプロジェクトを共用。以下のテーブルは共用：
 - `auth.users` - ユーザー認証（Supabase Auth標準）
