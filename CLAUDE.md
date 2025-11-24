@@ -6,13 +6,68 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **MonsterWalker（モンスターウォーカー）** - ドラクエウォークのモンスター攻略情報を登録・共有するファンツールアプリ。
 
+## 開発コマンド
+
+```bash
+# 開発サーバー起動
+npm start                    # Expo開発サーバー
+npx expo start --clear       # キャッシュクリアして起動
+
+# プラットフォーム別
+npm run ios                  # iOSシミュレーター
+npm run android              # Androidエミュレーター
+
+# 型チェック
+npx tsc --noEmit
+
+# パッケージ追加（Expo互換バージョン自動選択）
+npx expo install <package>
+```
+
 ## 技術スタック
 
-- **フロントエンド**: React Native + Expo
+- **フロントエンド**: React Native + Expo SDK 54
 - **バックエンド**: Supabase (PostgreSQL + Auth + Storage)
 - **状態管理**: React Context (AuthContext) + React Query (TanStack Query)
-- **キャッシュ**: React Query + AsyncStorage (SWRパターン)
+- **ナビゲーション**: React Navigation (Bottom Tabs)
 - **プラットフォーム**: iOS / Android
+
+## ソースコード構造
+
+```
+src/
+├── api/                     # Supabaseクエリ関数（データ取得・更新）
+├── components/
+│   ├── common/              # 汎用UI部品（Button, Card, Modal等）
+│   └── features/            # 機能固有UI部品
+├── config/                  # 設定ファイル
+│   ├── supabase.ts          # Supabaseクライアント
+│   └── queryClient.ts       # React Query設定
+├── constants/               # 定数
+│   └── colors.ts            # カラーパレット（UI設計書準拠）
+├── contexts/                # グローバル状態（React Context）
+│   └── AuthContext.tsx      # 認証状態管理
+├── hooks/                   # カスタムフック（状態・データ取得）
+├── navigation/              # ナビゲーション
+│   └── TabNavigator.tsx     # 5タブナビゲーション
+├── screens/                 # 画面コンポーネント
+├── types/                   # 型定義
+│   ├── database.ts          # Supabaseテーブル型定義
+│   └── navigation.ts        # ナビゲーション型定義
+└── utils/                   # 純粋関数（Reactに依存しない）
+```
+
+### フォルダの役割分担
+
+| フォルダ | 役割 | 配置するもの |
+|---------|------|-------------|
+| `api/` | データ取得・更新 | Supabaseクエリ関数 |
+| `components/` | UIの見た目 | 再利用可能なUI部品 |
+| `config/` | 設定 | 外部サービス接続設定 |
+| `hooks/` | 状態・副作用 | React Queryフック、カスタムフック |
+| `utils/` | 純粋関数 | フォーマット、バリデーション |
+| `screens/` | 画面 | 各タブ・ページのコンポーネント |
+| `contexts/` | グローバル状態 | 認証など横断的な状態管理 |
 
 ## アーキテクチャ
 
@@ -30,7 +85,7 @@ dqwfuntool内で他アプリとSupabaseプロジェクトを共用。以下の�
 ### 本アプリ専用テーブル（`mw_`プレフィクス）
 - `mw_mst_*` - マスタテーブル（monsters, weapons, jobs）
 - `mw_strategies` - 攻略情報
-- `mw_strategy_members` - パーティメンバー（4人分）、武器はNULL許容（NULL=任意）
+- `mw_strategy_members` - パーティメンバー（4人分）、全項目NULL許容（任意入力）
 - `mw_likes`, `mw_favorites_*`, `mw_reports` - ユーザーアクション
 - `mw_requests` - 要望
 
@@ -87,3 +142,8 @@ mw_screenshots/{user_id}/{strategy_no}/{member_order}_{front|back}.{ext}
 - mw_mst_jobs: 24職（基本職8、上級職8、特級職8）
 - mw_mst_weapons: 199件（星5武器）
 - mw_mst_monsters: 262件（ギガモン12、メガモン99、ほこら151）
+
+## 注意事項
+
+- パッケージ追加時は `npx expo install` を使用（Expo SDKとの互換性を自動確認）
+- 環境変数は `.env` ファイルで管理（`EXPO_PUBLIC_` プレフィクス必須）
