@@ -60,8 +60,9 @@ export default function TabNavigator() {
         component={StrategyRegisterScreen}
         options={{
           title: '登録',
-          tabBarIcon: () => (
-            <MaterialIcons name="add-circle" size={32} color={colors.primary} />
+          tabBarLabel: () => null,
+          tabBarIcon: ({ color }) => (
+            <MaterialIcons name="add-circle" size={32} color={color} style={{ marginBottom: -4 }} />
           ),
         }}
       />
