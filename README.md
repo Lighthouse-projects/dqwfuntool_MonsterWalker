@@ -12,22 +12,54 @@
 
 | 機能 | 説明 |
 |------|------|
-| 攻略情報検索 | モンスター・武器で検索、いいね数順ソート |
-| 攻略情報登録 | パーティ構成（4人分）、行動順序、攻略タイプを登録 |
+| 攻略情報検索 | モンスター・武器で絞り込み検索、いいね数順ソート |
+| 攻略情報登録 | パーティ構成（4人分）、行動説明、攻略タイプを登録 |
 | いいね | 役立った攻略情報を評価 |
 | お気に入り | 検索条件・攻略情報を保存 |
 | ランキング | いいね数ランキング、登録者ランキング |
+| 要望機能 | モンスター・武器追加などの要望を送信 |
 
 ## 技術スタック
 
-- **フロントエンド**: React Native + Expo
-- **バックエンド**: Supabase (PostgreSQL + Auth + Storage)
+- **フロントエンド**: React Native + Expo SDK 54
+- **バックエンド**: Supabase (PostgreSQL + Auth + Storage + Edge Functions)
+- **状態管理**: React Context + React Query (TanStack Query)
+- **ナビゲーション**: React Navigation (Bottom Tabs + Stack)
 - **プラットフォーム**: iOS / Android
+
+## 開発
+
+```bash
+# 開発サーバー起動
+npm start
+
+# キャッシュクリアして起動
+npx expo start --clear
+
+# 型チェック
+npx tsc --noEmit
+
+# パッケージ追加（Expo互換バージョン自動選択）
+npx expo install <package>
+```
+
+## マスタデータ
+
+| テーブル | 件数 | 内容 |
+|---------|------|------|
+| mw_mst_monsters | 262件 | ギガモン12、メガモン99、ほこら151 |
+| mw_mst_weapons | 199件 | 星5武器 |
+| mw_mst_jobs | 24件 | 基本職8、上級職8、特級職8 |
 
 ## ドキュメント
 
 - [要件定義書](documents/1_要件定義書.md)
 - [アーキテクチャ設計書](documents/2_アーキテクチャ設計書.md)
+- [機能設計書](documents/3_機能設計書.md)
+- [データベース設計書](documents/4_データベース設計書.md)
+- [UI設計書](documents/5_UI設計書.md)
+- [利用規約](documents/6_利用規約.md)
+- [プライバシーポリシー](documents/7_プライバシーポリシー.md)
 
 ## 注意事項
 
