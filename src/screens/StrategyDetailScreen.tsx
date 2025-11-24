@@ -243,14 +243,20 @@ export default function StrategyDetailScreen() {
         {/* ユーザー情報 */}
         <View style={styles.userSection}>
           <View style={styles.userInfo}>
-            {profileData?.avatar_url ? (
+            {loadingProfile ? (
+              <View style={styles.avatarPlaceholder}>
+                <Ionicons name="person" size={16} color={colors.textSecondary} />
+              </View>
+            ) : profileData?.avatar_url ? (
               <Image source={{ uri: profileData.avatar_url }} style={styles.avatar} />
             ) : (
               <View style={styles.avatarPlaceholder}>
                 <Ionicons name="person" size={16} color={colors.textSecondary} />
               </View>
             )}
-            <Text style={styles.nickname}>{profileData?.nickname || '名無し'}</Text>
+            <Text style={styles.nickname}>
+              {loadingProfile ? '' : (profileData?.nickname || 'NoName')}
+            </Text>
           </View>
           <Text style={styles.createdAt}>
             {new Date(strategy.created_at).toLocaleDateString('ja-JP')}

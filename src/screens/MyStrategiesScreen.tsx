@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -9,7 +9,7 @@ import {
   RefreshControl,
   Alert,
 } from 'react-native';
-import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, fontSize, spacing } from '../constants/colors';
@@ -48,12 +48,12 @@ export default function MyStrategiesScreen() {
     }
   };
 
-  useFocusEffect(
-    useCallback(() => {
-      setLoading(true);
+  // 初回のみデータ取得（フォーカス時は再取得しない）
+  useEffect(() => {
+    if (user) {
       loadData();
-    }, [user])
-  );
+    }
+  }, [user]);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -147,7 +147,7 @@ export default function MyStrategiesScreen() {
     </View>
   );
 
-  if (loading) {
+  if (loading && !refreshing) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={colors.primary} />
