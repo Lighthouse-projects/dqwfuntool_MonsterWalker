@@ -1,6 +1,17 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '../config/supabase';
+import * as WebBrowser from 'expo-web-browser';
+import { makeRedirectUri } from 'expo-auth-session';
+
+// OAuth完了後のブラウザセッションを閉じる
+WebBrowser.maybeCompleteAuthSession();
+
+// リダイレクトURIを生成
+const redirectUri = makeRedirectUri({
+  scheme: 'monsterwalker',
+  path: 'auth/callback',
+});
 
 interface Profile {
   user_id: string;
@@ -16,7 +27,7 @@ interface AuthContextType {
   user: User | null;
   profile: Profile | null;
   loading: boolean;
-  signInWithX: () => Promise<void>;
+  signInWithX: () => Promise<{ success: boolean; error?: string }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
 }
@@ -77,18 +88,77 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const signInWithX = async () => {
+  const signInWithX = async (): Promise<{ success: boolean; error?: string }> => {
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
+      // Supabaseから認証URLを取得
+      const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'twitter',
         options: {
-          redirectTo: 'monsterwalker://auth/callback',
+          redirectTo: redirectUri,
+          skipBrowserRedirect: true, // ブラウザリダイレクトをスキップしてURLを取得
         },
       });
-      if (error) throw error;
+
+      if (error) {
+        return { success: false, error: error.message };
+      }
+
+      if (!data.url) {
+        return { success: false, error: '認証URLの取得に失敗しました' };
+      }
+
+      // WebBrowserでOAuth認証ページを開く
+      const result = await WebBrowser.openAuthSessionAsync(
+        data.url,
+        redirectUri
+      );
+
+      if (result.type === 'success') {
+        // コールバックURLからトークンを抽出
+        const url = result.url;
+
+        // URLからアクセストークンとリフレッシュトークンを取得
+        // Supabaseは #access_token=...&refresh_token=... の形式でトークンを返す
+        const hashParams = url.split('#')[1];
+        if (hashParams) {
+          const params = new URLSearchParams(hashParams);
+          const accessToken = params.get('access_token');
+          const refreshToken = params.get('refresh_token');
+
+          if (accessToken && refreshToken) {
+            // セッションを設定
+            const { error: sessionError } = await supabase.auth.setSession({
+              access_token: accessToken,
+              refresh_token: refreshToken,
+            });
+
+            if (sessionError) {
+              return { success: false, error: sessionError.message };
+            }
+
+            return { success: true };
+          }
+        }
+
+        // エラーパラメータのチェック
+        const queryParams = url.split('?')[1];
+        if (queryParams) {
+          const params = new URLSearchParams(queryParams);
+          const errorDescription = params.get('error_description');
+          if (errorDescription) {
+            return { success: false, error: decodeURIComponent(errorDescription) };
+          }
+        }
+
+        return { success: false, error: '認証情報の取得に失敗しました' };
+      } else if (result.type === 'cancel') {
+        return { success: false, error: '認証がキャンセルされました' };
+      } else {
+        return { success: false, error: '認証に失敗しました' };
+      }
     } catch (error) {
       console.error('Error signing in with X:', error);
-      throw error;
+      return { success: false, error: '通信エラーが発生しました' };
     }
   };
 

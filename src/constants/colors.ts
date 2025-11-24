@@ -17,6 +17,7 @@ export const colors = {
   backgroundSecondary: '#F5F5F5', // ライトグレー
   textPrimary: '#212121',         // ダークグレー
   textSecondary: '#757575',       // グレー
+  placeholder: '#BDBDBD',         // プレースホルダー
   border: '#E0E0E0',              // ライトグレー
 
   // タブバー

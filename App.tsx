@@ -6,7 +6,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { AuthProvider } from './src/contexts/AuthContext';
 import { queryClient } from './src/config/queryClient';
-import TabNavigator from './src/navigation/TabNavigator';
+import RootNavigator from './src/navigation/RootNavigator';
 
 export default function App() {
   return (
@@ -14,7 +14,7 @@ export default function App() {
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
           <NavigationContainer>
-            <TabNavigator />
+            <RootNavigator />
             <StatusBar style="auto" />
           </NavigationContainer>
         </AuthProvider>
