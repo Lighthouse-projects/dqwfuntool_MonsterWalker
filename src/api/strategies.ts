@@ -348,3 +348,174 @@ export async function searchStrategies(
     return { data: [], count: 0 };
   }
 }
+
+// 自分の攻略情報一覧取得
+export async function fetchMyStrategies(
+  userId: string
+): Promise<StrategyListItem[]> {
+  try {
+    const { data, error } = await supabase
+      .from('mw_strategies')
+      .select(`
+        strategy_no,
+        user_id,
+        monster_no,
+        strategy_type,
+        like_count,
+        created_at,
+        mw_mst_monsters!inner (
+          monster_name,
+          monster_category
+        )
+      `)
+      .eq('user_id', userId)
+      .eq('is_deleted', false)
+      .order('created_at', { ascending: false });
+
+    if (error || !data) {
+      console.error('Fetch my strategies error:', error);
+      return [];
+    }
+
+    // プロフィール情報を取得
+    const { data: profileData } = await supabase
+      .from('profiles')
+      .select('nickname, avatar_url')
+      .eq('user_id', userId)
+      .single();
+
+    // データ整形
+    return data.map((item: any) => ({
+      strategy_no: item.strategy_no,
+      user_id: item.user_id,
+      monster_no: item.monster_no,
+      strategy_type: item.strategy_type,
+      like_count: item.like_count,
+      created_at: item.created_at,
+      monster_name: item.mw_mst_monsters?.monster_name || '',
+      monster_category: item.mw_mst_monsters?.monster_category || '',
+      nickname: profileData?.nickname || null,
+      avatar_url: profileData?.avatar_url || null,
+    }));
+  } catch (error) {
+    console.error('Fetch my strategies error:', error);
+    return [];
+  }
+}
+
+// いいねした攻略情報一覧取得
+export async function fetchLikedStrategies(
+  userId: string
+): Promise<StrategyListItem[]> {
+  try {
+    // いいねした攻略情報のstrategy_noを取得
+    const { data: likes, error: likesError } = await supabase
+      .from('mw_likes')
+      .select('strategy_no')
+      .eq('user_id', userId);
+
+    if (likesError || !likes || likes.length === 0) {
+      return [];
+    }
+
+    const strategyNos = likes.map((l) => l.strategy_no);
+
+    // 攻略情報を取得
+    const { data, error } = await supabase
+      .from('mw_strategies')
+      .select(`
+        strategy_no,
+        user_id,
+        monster_no,
+        strategy_type,
+        like_count,
+        created_at,
+        mw_mst_monsters!inner (
+          monster_name,
+          monster_category
+        )
+      `)
+      .in('strategy_no', strategyNos)
+      .eq('is_deleted', false)
+      .order('created_at', { ascending: false });
+
+    if (error || !data) {
+      console.error('Fetch liked strategies error:', error);
+      return [];
+    }
+
+    // ユーザーIDを収集してプロフィール情報を一括取得
+    const userIds = [...new Set(data.map((item: any) => item.user_id))];
+    let profilesMap: Record<string, { nickname: string | null; avatar_url: string | null }> = {};
+
+    if (userIds.length > 0) {
+      const { data: profilesData } = await supabase
+        .from('profiles')
+        .select('user_id, nickname, avatar_url')
+        .in('user_id', userIds);
+
+      if (profilesData) {
+        profilesMap = profilesData.reduce((acc, p) => {
+          acc[p.user_id] = { nickname: p.nickname, avatar_url: p.avatar_url };
+          return acc;
+        }, {} as Record<string, { nickname: string | null; avatar_url: string | null }>);
+      }
+    }
+
+    // データ整形
+    return data.map((item: any) => ({
+      strategy_no: item.strategy_no,
+      user_id: item.user_id,
+      monster_no: item.monster_no,
+      strategy_type: item.strategy_type,
+      like_count: item.like_count,
+      created_at: item.created_at,
+      monster_name: item.mw_mst_monsters?.monster_name || '',
+      monster_category: item.mw_mst_monsters?.monster_category || '',
+      nickname: profilesMap[item.user_id]?.nickname || null,
+      avatar_url: profilesMap[item.user_id]?.avatar_url || null,
+    }));
+  } catch (error) {
+    console.error('Fetch liked strategies error:', error);
+    return [];
+  }
+}
+
+// 攻略情報削除（論理削除）
+export async function deleteStrategy(
+  strategyNo: number,
+  userId: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    // 自分の攻略情報かチェック
+    const { data: strategy, error: checkError } = await supabase
+      .from('mw_strategies')
+      .select('user_id')
+      .eq('strategy_no', strategyNo)
+      .single();
+
+    if (checkError || !strategy) {
+      return { success: false, error: '攻略情報が見つかりません' };
+    }
+
+    if (strategy.user_id !== userId) {
+      return { success: false, error: '自分の攻略情報のみ削除できます' };
+    }
+
+    // 論理削除
+    const { error: deleteError } = await supabase
+      .from('mw_strategies')
+      .update({ is_deleted: true })
+      .eq('strategy_no', strategyNo);
+
+    if (deleteError) {
+      console.error('Delete strategy error:', deleteError);
+      return { success: false, error: '削除に失敗しました' };
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error('Delete strategy error:', error);
+    return { success: false, error: '削除に失敗しました' };
+  }
+}

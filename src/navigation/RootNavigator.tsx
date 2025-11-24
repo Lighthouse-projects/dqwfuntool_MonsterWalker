@@ -10,6 +10,10 @@ import TermsScreen from '../screens/auth/TermsScreen';
 import PrivacyPolicyScreen from '../screens/auth/PrivacyPolicyScreen';
 import ProfileEditScreen from '../screens/ProfileEditScreen';
 import StrategyDetailScreen from '../screens/StrategyDetailScreen';
+import MyStrategiesScreen from '../screens/MyStrategiesScreen';
+import LikedStrategiesScreen from '../screens/LikedStrategiesScreen';
+import RequestSubmitScreen from '../screens/RequestSubmitScreen';
+import RequestListScreen from '../screens/RequestListScreen';
 
 export type RootStackParamList = {
   Main: undefined;
@@ -20,6 +24,10 @@ export type RootStackParamList = {
   PrivacyPolicy: undefined;
   ProfileEdit: undefined;
   StrategyDetail: { strategy_no: number };
+  MyStrategies: undefined;
+  LikedStrategies: undefined;
+  RequestSubmit: undefined;
+  RequestList: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -83,6 +91,26 @@ export default function RootNavigator() {
           name="StrategyDetail"
           component={StrategyDetailScreen}
           options={{ title: '攻略情報' }}
+        />
+        <Stack.Screen
+          name="MyStrategies"
+          component={MyStrategiesScreen}
+          options={{ title: '自分の攻略情報' }}
+        />
+        <Stack.Screen
+          name="LikedStrategies"
+          component={LikedStrategiesScreen}
+          options={{ title: 'いいねした攻略情報' }}
+        />
+        <Stack.Screen
+          name="RequestSubmit"
+          component={RequestSubmitScreen}
+          options={{ title: '要望送信' }}
+        />
+        <Stack.Screen
+          name="RequestList"
+          component={RequestListScreen}
+          options={{ title: '要望一覧' }}
         />
       </Stack.Group>
     </Stack.Navigator>

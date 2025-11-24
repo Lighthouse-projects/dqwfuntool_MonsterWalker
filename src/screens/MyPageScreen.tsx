@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -7,12 +7,14 @@ import {
   ScrollView,
   Image,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, fontSize, spacing } from '../constants/colors';
 import { useAuth } from '../contexts/AuthContext';
+import { deleteAccount } from '../api/account';
 import type { RootStackParamList } from '../navigation/RootNavigator';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -42,6 +44,7 @@ function MenuItem({ icon, label, onPress, showArrow = true, color }: MenuItemPro
 export default function MyPageScreen() {
   const navigation = useNavigation<NavigationProp>();
   const { user, profile, loading, signOut } = useAuth();
+  const [deleting, setDeleting] = useState(false);
 
   const handleLogout = () => {
     Alert.alert(
@@ -57,6 +60,36 @@ export default function MyPageScreen() {
               await signOut();
             } catch (error) {
               Alert.alert('エラー', 'ログアウトに失敗しました');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleDeleteAccount = () => {
+    Alert.alert(
+      'アカウント削除',
+      'アカウントを削除すると、全ての攻略情報・いいね・お気に入り等のデータが完全に削除され、復元できません。\n\n本当に削除しますか？',
+      [
+        { text: 'キャンセル', style: 'cancel' },
+        {
+          text: '削除する',
+          style: 'destructive',
+          onPress: async () => {
+            setDeleting(true);
+            try {
+              const result = await deleteAccount();
+              if (result.success) {
+                await signOut();
+                Alert.alert('完了', 'アカウントを削除しました');
+              } else {
+                Alert.alert('エラー', result.error || '削除に失敗しました');
+              }
+            } catch (error) {
+              Alert.alert('エラー', '削除に失敗しました');
+            } finally {
+              setDeleting(false);
             }
           },
         },
@@ -126,19 +159,13 @@ export default function MyPageScreen() {
           <MenuItem
             icon="document-text-outline"
             label="自分の攻略情報"
-            onPress={() => Alert.alert('準備中', 'この機能は準備中です')}
+            onPress={() => navigation.navigate('MyStrategies')}
           />
           <View style={styles.menuDivider} />
           <MenuItem
             icon="heart-outline"
             label="いいねした攻略情報"
-            onPress={() => Alert.alert('準備中', 'この機能は準備中です')}
-          />
-          <View style={styles.menuDivider} />
-          <MenuItem
-            icon="star-outline"
-            label="お気に入り"
-            onPress={() => Alert.alert('準備中', 'この機能は準備中です')}
+            onPress={() => navigation.navigate('LikedStrategies')}
           />
         </View>
       </View>
@@ -150,13 +177,13 @@ export default function MyPageScreen() {
           <MenuItem
             icon="chatbubble-ellipses-outline"
             label="要望送信"
-            onPress={() => Alert.alert('準備中', 'この機能は準備中です')}
+            onPress={() => navigation.navigate('RequestSubmit')}
           />
           <View style={styles.menuDivider} />
           <MenuItem
             icon="list-outline"
             label="要望一覧"
-            onPress={() => Alert.alert('準備中', 'この機能は準備中です')}
+            onPress={() => navigation.navigate('RequestList')}
           />
         </View>
       </View>
@@ -177,13 +204,20 @@ export default function MyPageScreen() {
       {/* アカウント削除 */}
       <View style={styles.menuSection}>
         <View style={styles.menuCard}>
-          <MenuItem
-            icon="trash-outline"
-            label="アカウント削除"
-            onPress={() => Alert.alert('準備中', 'この機能は準備中です')}
-            showArrow={false}
-            color={colors.error}
-          />
+          {deleting ? (
+            <View style={styles.deletingContainer}>
+              <ActivityIndicator color={colors.error} />
+              <Text style={styles.deletingText}>削除中...</Text>
+            </View>
+          ) : (
+            <MenuItem
+              icon="trash-outline"
+              label="アカウント削除"
+              onPress={handleDeleteAccount}
+              showArrow={false}
+              color={colors.error}
+            />
+          )}
         </View>
       </View>
 
@@ -326,5 +360,18 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     textAlign: 'center',
     marginTop: spacing.lg,
+  },
+  // 削除中
+  deletingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.md,
+    gap: spacing.sm,
+  },
+  deletingText: {
+    fontSize: fontSize.md,
+    color: colors.error,
   },
 });
