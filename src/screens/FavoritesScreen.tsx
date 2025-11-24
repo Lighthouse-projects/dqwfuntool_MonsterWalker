@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { colors, fontSize, spacing } from '../constants/colors';
 import { useAuth } from '../contexts/AuthContext';
 import {
@@ -168,11 +168,11 @@ export default function FavoritesScreen() {
         <Text style={styles.searchName}>{item.display_name}</Text>
         <View style={styles.searchConditions}>
           <Text style={styles.searchCondition}>
-            <Ionicons name="skull-outline" size={12} color={colors.textSecondary} />
+            <MaterialCommunityIcons name="ghost-outline" size={12} color={colors.textSecondary} />
             {' '}{getMonsterName(item.monster_no)}
           </Text>
           <Text style={styles.searchCondition}>
-            <Ionicons name="flash-outline" size={12} color={colors.textSecondary} />
+            <MaterialCommunityIcons name="sword" size={12} color={colors.textSecondary} />
             {' '}{getWeaponName(item.weapon_no)}
           </Text>
         </View>
