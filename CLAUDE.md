@@ -119,7 +119,7 @@ dqwfuntool内で他アプリとSupabaseプロジェクトを共用。以下の�
 
 ### ENUM型
 - `monster_category_enum`: hokora / megamon / gigamon
-- `strategy_type_enum`: oneshot / semiauto / auto
+- `strategy_type_enum`: oneshot / semiauto / auto / manual
 - `job_rank_enum`: basic / advanced / special
 - `request_category_enum`: monster / weapon / job / bug / feature / question / other
 - `request_status_enum`: pending / in_progress / completed / rejected

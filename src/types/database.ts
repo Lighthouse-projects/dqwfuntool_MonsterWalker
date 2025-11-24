@@ -11,7 +11,7 @@ export type Json =
 
 // Enum types
 export type MonsterCategory = 'hokora' | 'megamon' | 'gigamon';
-export type StrategyType = 'oneshot' | 'semiauto' | 'auto';
+export type StrategyType = 'oneshot' | 'semiauto' | 'auto' | 'manual';
 export type JobRank = 'basic' | 'advanced' | 'special';
 export type RequestCategory = 'monster' | 'weapon' | 'job' | 'bug' | 'feature' | 'question' | 'other';
 export type RequestStatus = 'pending' | 'in_progress' | 'completed' | 'rejected';
@@ -166,8 +166,6 @@ export interface Database {
           strategy_type: StrategyType;
           action_description: string | null;
           like_count: number;
-          is_deleted: boolean;
-          deleted_at: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -178,8 +176,6 @@ export interface Database {
           strategy_type: StrategyType;
           action_description?: string | null;
           like_count?: number;
-          is_deleted?: boolean;
-          deleted_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -190,8 +186,6 @@ export interface Database {
           strategy_type?: StrategyType;
           action_description?: string | null;
           like_count?: number;
-          is_deleted?: boolean;
-          deleted_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };

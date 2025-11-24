@@ -42,7 +42,6 @@ export async function fetchStrategyRanking(
           monster_category
         )
       `)
-      .eq('is_deleted', false)
       .order('like_count', { ascending: false })
       .limit(limit);
 
@@ -96,8 +95,7 @@ export async function fetchUserRankingTotal(
     // 攻略情報の登録件数を集計
     const { data, error } = await supabase
       .from('mw_strategies')
-      .select('user_id')
-      .eq('is_deleted', false);
+      .select('user_id');
 
     if (error || !data) {
       console.error('Fetch user ranking error:', error);
@@ -163,7 +161,6 @@ export async function fetchUserRankingWeekly(
     const { data, error } = await supabase
       .from('mw_strategies')
       .select('user_id, created_at')
-      .eq('is_deleted', false)
       .gte('created_at', weekStart.toISOString());
 
     if (error || !data) {

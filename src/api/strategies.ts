@@ -3,7 +3,7 @@ import { File } from 'expo-file-system/next';
 import { decode } from 'base64-arraybuffer';
 
 // 型定義
-export type StrategyType = 'oneshot' | 'semiauto' | 'auto';
+export type StrategyType = 'oneshot' | 'semiauto' | 'auto' | 'manual';
 
 export interface StrategyMemberInput {
   member_order: number;
@@ -27,7 +27,6 @@ export interface Strategy {
   strategy_type: StrategyType;
   action_description: string | null;
   like_count: number;
-  is_deleted: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -47,6 +46,7 @@ export const strategyTypeLabels: Record<StrategyType, string> = {
   oneshot: 'ワンパン',
   semiauto: 'セミオート',
   auto: 'オート',
+  manual: 'マニュアル',
 };
 
 // スクリーンショットアップロード
@@ -274,8 +274,7 @@ export async function searchStrategies(
           monster_name,
           monster_category
         )
-      `, { count: 'exact' })
-      .eq('is_deleted', false);
+      `, { count: 'exact' });
 
     // モンスターフィルタ
     if (monster_no) {
@@ -369,7 +368,6 @@ export async function fetchMyStrategies(
         )
       `)
       .eq('user_id', userId)
-      .eq('is_deleted', false)
       .order('created_at', { ascending: false });
 
     if (error || !data) {
@@ -436,7 +434,6 @@ export async function fetchLikedStrategies(
         )
       `)
       .in('strategy_no', strategyNos)
-      .eq('is_deleted', false)
       .order('created_at', { ascending: false });
 
     if (error || !data) {
@@ -481,32 +478,19 @@ export async function fetchLikedStrategies(
   }
 }
 
-// 攻略情報削除（論理削除）
+// 攻略情報削除（物理削除）
 export async function deleteStrategy(
   strategyNo: number,
   userId: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    // 自分の攻略情報かチェック
-    const { data: strategy, error: checkError } = await supabase
-      .from('mw_strategies')
-      .select('user_id')
-      .eq('strategy_no', strategyNo)
-      .single();
-
-    if (checkError || !strategy) {
-      return { success: false, error: '攻略情報が見つかりません' };
-    }
-
-    if (strategy.user_id !== userId) {
-      return { success: false, error: '自分の攻略情報のみ削除できます' };
-    }
-
-    // 論理削除
+    // RLSで自分のデータのみ削除可能なため、直接削除を実行
+    // 関連データ（mw_strategy_members, mw_likes等）はCASCADE削除される
     const { error: deleteError } = await supabase
       .from('mw_strategies')
-      .update({ is_deleted: true })
-      .eq('strategy_no', strategyNo);
+      .delete()
+      .eq('strategy_no', strategyNo)
+      .eq('user_id', userId);
 
     if (deleteError) {
       console.error('Delete strategy error:', deleteError);

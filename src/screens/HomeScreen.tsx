@@ -14,7 +14,7 @@ import {
 import { useNavigation, useFocusEffect, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { TabParamList } from '../navigation/TabNavigator';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { colors, fontSize, spacing } from '../constants/colors';
 import { fetchMonsters, fetchWeapons, type Monster, type Weapon } from '../api/masters';
 import { searchStrategies, type StrategyListItem, type SearchParams } from '../api/strategies';
@@ -290,8 +290,8 @@ export default function HomeScreen() {
             style={[styles.filterButton, selectedMonster && styles.filterButtonActive]}
             onPress={() => setShowMonsterModal(true)}
           >
-            <Ionicons
-              name="skull-outline"
+            <MaterialCommunityIcons
+              name="ghost-outline"
               size={16}
               color={selectedMonster ? colors.background : colors.textSecondary}
             />
@@ -318,8 +318,8 @@ export default function HomeScreen() {
             style={[styles.filterButton, selectedWeapon && styles.filterButtonActive]}
             onPress={() => setShowWeaponModal(true)}
           >
-            <Ionicons
-              name="flash-outline"
+            <MaterialCommunityIcons
+              name="sword"
               size={16}
               color={selectedWeapon ? colors.background : colors.textSecondary}
             />

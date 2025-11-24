@@ -252,7 +252,7 @@ export default function RegisterScreen() {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>攻略タイプ *</Text>
         <View style={styles.typeContainer}>
-          {(['oneshot', 'semiauto', 'auto'] as StrategyType[]).map((type) => (
+          {(['oneshot', 'semiauto', 'auto', 'manual'] as StrategyType[]).map((type) => (
             <TouchableOpacity
               key={type}
               style={[

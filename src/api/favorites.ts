@@ -125,8 +125,7 @@ export async function fetchFavoriteStrategies(
           monster_category
         )
       `)
-      .in('strategy_no', strategyNos)
-      .eq('is_deleted', false);
+      .in('strategy_no', strategyNos);
 
     if (stratError || !strategies) {
       return [];
