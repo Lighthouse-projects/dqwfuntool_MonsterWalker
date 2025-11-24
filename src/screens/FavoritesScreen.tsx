@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -9,7 +9,7 @@ import {
   RefreshControl,
   Alert,
 } from 'react-native';
-import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { colors, fontSize, spacing } from '../constants/colors';
@@ -67,12 +67,10 @@ export default function FavoritesScreen() {
     }
   };
 
-  useFocusEffect(
-    useCallback(() => {
-      setLoading(true);
-      loadData();
-    }, [user])
-  );
+  useEffect(() => {
+    setLoading(true);
+    loadData();
+  }, [user]);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -149,7 +147,7 @@ export default function FavoritesScreen() {
     );
   }
 
-  if (loading) {
+  if (loading && !refreshing) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={colors.primary} />

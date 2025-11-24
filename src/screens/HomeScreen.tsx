@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -11,7 +11,7 @@ import {
   TextInput,
   Modal,
 } from 'react-native';
-import { useNavigation, useFocusEffect, useRoute, RouteProp } from '@react-navigation/native';
+import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { TabParamList } from '../navigation/TabNavigator';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
@@ -103,44 +103,42 @@ export default function HomeScreen() {
   };
 
   // 初期読み込み＆ナビゲーションパラメータによるフィルター適用
-  useFocusEffect(
-    useCallback(() => {
-      const initializeScreen = async () => {
-        // マスタデータ読み込み
-        setLoadingMasters(true);
-        try {
-          const [monstersData, weaponsData] = await Promise.all([
-            fetchMonsters(),
-            fetchWeapons(),
-          ]);
-          setMonsters(monstersData);
-          setWeapons(weaponsData);
+  useEffect(() => {
+    const initializeScreen = async () => {
+      // マスタデータ読み込み
+      setLoadingMasters(true);
+      try {
+        const [monstersData, weaponsData] = await Promise.all([
+          fetchMonsters(),
+          fetchWeapons(),
+        ]);
+        setMonsters(monstersData);
+        setWeapons(weaponsData);
 
-          // ナビゲーションパラメータがある場合はフィルターを適用
-          let filterMonster: Monster | null = null;
-          let filterWeapon: Weapon | null = null;
+        // ナビゲーションパラメータがある場合はフィルターを適用
+        let filterMonster: Monster | null = null;
+        let filterWeapon: Weapon | null = null;
 
-          if (routeMonsterNo) {
-            filterMonster = monstersData.find(m => m.monster_no === routeMonsterNo) || null;
-            setSelectedMonster(filterMonster);
-          }
-          if (routeWeaponNo) {
-            filterWeapon = weaponsData.find(w => w.weapon_no === routeWeaponNo) || null;
-            setSelectedWeapon(filterWeapon);
-          }
-
-          // 検索実行
-          executeSearch(true, filterMonster, filterWeapon);
-        } catch (error) {
-          console.error('Failed to load masters:', error);
-        } finally {
-          setLoadingMasters(false);
+        if (routeMonsterNo) {
+          filterMonster = monstersData.find(m => m.monster_no === routeMonsterNo) || null;
+          setSelectedMonster(filterMonster);
         }
-      };
+        if (routeWeaponNo) {
+          filterWeapon = weaponsData.find(w => w.weapon_no === routeWeaponNo) || null;
+          setSelectedWeapon(filterWeapon);
+        }
 
-      initializeScreen();
-    }, [routeMonsterNo, routeWeaponNo])
-  );
+        // 検索実行
+        executeSearch(true, filterMonster, filterWeapon);
+      } catch (error) {
+        console.error('Failed to load masters:', error);
+      } finally {
+        setLoadingMasters(false);
+      }
+    };
+
+    initializeScreen();
+  }, [routeMonsterNo, routeWeaponNo]);
 
   // フィルター変更時に再検索
   const handleFilterChange = (
@@ -364,7 +362,7 @@ export default function HomeScreen() {
       </View>
 
       {/* 検索結果リスト */}
-      {loading ? (
+      {loading && !refreshing ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
         </View>
@@ -532,6 +530,7 @@ const styles = StyleSheet.create({
   listContent: {
     padding: spacing.md,
     paddingTop: 0,
+    flexGrow: 1,
   },
   footerLoader: {
     paddingVertical: spacing.lg,
