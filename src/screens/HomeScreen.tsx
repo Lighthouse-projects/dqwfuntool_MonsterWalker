@@ -16,10 +16,11 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { TabParamList } from '../navigation/TabNavigator';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { colors, fontSize, spacing } from '../constants/colors';
-import { fetchMonsters, fetchWeapons, type Monster, type Weapon } from '../api/masters';
+import { type Monster, type Weapon, monsterCategoryLabels } from '../api/masters';
 import { searchStrategies, type StrategyListItem, type SearchParams } from '../api/strategies';
 import { addFavoriteSearch } from '../api/favorites';
 import { useAuth } from '../contexts/AuthContext';
+import { useMonsters, useWeapons } from '../hooks/useMasters';
 import SelectModal from '../components/common/SelectModal';
 import StrategyCard from '../components/features/StrategyCard';
 import type { RootStackParamList } from '../navigation/RootNavigator';
@@ -49,10 +50,10 @@ export default function HomeScreen() {
   const [saveName, setSaveName] = useState('');
   const [saving, setSaving] = useState(false);
 
-  // マスタデータ
-  const [monsters, setMonsters] = useState<Monster[]>([]);
-  const [weapons, setWeapons] = useState<Weapon[]>([]);
-  const [loadingMasters, setLoadingMasters] = useState(true);
+  // マスタデータ（React Queryでキャッシュ）
+  const { data: monsters = [], isLoading: loadingMonsters } = useMonsters();
+  const { data: weapons = [], isLoading: loadingWeapons } = useWeapons();
+  const loadingMasters = loadingMonsters || loadingWeapons;
 
   // 検索結果
   const [strategies, setStrategies] = useState<StrategyListItem[]>([]);
@@ -102,43 +103,26 @@ export default function HomeScreen() {
     }
   };
 
-  // 初期読み込み＆ナビゲーションパラメータによるフィルター適用
+  // マスタデータ読み込み完了後に初期検索実行
   useEffect(() => {
-    const initializeScreen = async () => {
-      // マスタデータ読み込み
-      setLoadingMasters(true);
-      try {
-        const [monstersData, weaponsData] = await Promise.all([
-          fetchMonsters(),
-          fetchWeapons(),
-        ]);
-        setMonsters(monstersData);
-        setWeapons(weaponsData);
+    if (loadingMasters) return;
 
-        // ナビゲーションパラメータがある場合はフィルターを適用
-        let filterMonster: Monster | null = null;
-        let filterWeapon: Weapon | null = null;
+    // ナビゲーションパラメータがある場合はフィルターを適用
+    let filterMonster: Monster | null = null;
+    let filterWeapon: Weapon | null = null;
 
-        if (routeMonsterNo) {
-          filterMonster = monstersData.find(m => m.monster_no === routeMonsterNo) || null;
-          setSelectedMonster(filterMonster);
-        }
-        if (routeWeaponNo) {
-          filterWeapon = weaponsData.find(w => w.weapon_no === routeWeaponNo) || null;
-          setSelectedWeapon(filterWeapon);
-        }
+    if (routeMonsterNo) {
+      filterMonster = monsters.find(m => m.monster_no === routeMonsterNo) || null;
+      setSelectedMonster(filterMonster);
+    }
+    if (routeWeaponNo) {
+      filterWeapon = weapons.find(w => w.weapon_no === routeWeaponNo) || null;
+      setSelectedWeapon(filterWeapon);
+    }
 
-        // 検索実行
-        executeSearch(true, filterMonster, filterWeapon);
-      } catch (error) {
-        console.error('Failed to load masters:', error);
-      } finally {
-        setLoadingMasters(false);
-      }
-    };
-
-    initializeScreen();
-  }, [routeMonsterNo, routeWeaponNo]);
+    // 検索実行
+    executeSearch(true, filterMonster, filterWeapon);
+  }, [loadingMasters, routeMonsterNo, routeWeaponNo]);
 
   // フィルター変更時に再検索
   const handleFilterChange = (
@@ -229,6 +213,7 @@ export default function HomeScreen() {
   const monsterOptions = monsters.map(m => ({
     value: m.monster_no,
     label: m.monster_name,
+    subLabel: monsterCategoryLabels[m.monster_category],
   }));
 
   // 武器選択用オプション

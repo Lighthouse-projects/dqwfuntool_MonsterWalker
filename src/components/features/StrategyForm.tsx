@@ -10,9 +10,6 @@ import {
 } from 'react-native';
 import { colors, fontSize, spacing } from '../../constants/colors';
 import {
-  fetchMonsters,
-  fetchWeapons,
-  fetchJobs,
   monsterCategoryLabels,
   jobRankLabels,
   type Monster,
@@ -23,6 +20,7 @@ import {
   strategyTypeLabels,
   type StrategyType,
 } from '../../api/strategies';
+import { useMasters } from '../../hooks/useMasters';
 import SelectModal from '../common/SelectModal';
 import PartyMemberInput from './PartyMemberInput';
 
@@ -64,11 +62,8 @@ export default function StrategyForm({
   onSubmit,
   onValidationError,
 }: StrategyFormProps) {
-  // マスタデータ
-  const [monsters, setMonsters] = useState<Monster[]>([]);
-  const [weapons, setWeapons] = useState<Weapon[]>([]);
-  const [jobs, setJobs] = useState<Job[]>([]);
-  const [loadingMasters, setLoadingMasters] = useState(true);
+  // マスタデータ（React Queryでキャッシュ）
+  const { monsters, weapons, jobs, isLoading: loadingMasters } = useMasters();
 
   // フォーム状態
   const [monsterNo, setMonsterNo] = useState<number | null>(initialData?.monsterNo ?? null);
@@ -98,27 +93,6 @@ export default function StrategyForm({
       setMembers(initialData.members);
     }
   }, [initialData]);
-
-  // マスタデータ読み込み
-  useEffect(() => {
-    const loadMasters = async () => {
-      try {
-        const [monstersData, weaponsData, jobsData] = await Promise.all([
-          fetchMonsters(),
-          fetchWeapons(),
-          fetchJobs(),
-        ]);
-        setMonsters(monstersData);
-        setWeapons(weaponsData);
-        setJobs(jobsData);
-      } catch (error) {
-        onValidationError('データの読み込みに失敗しました');
-      } finally {
-        setLoadingMasters(false);
-      }
-    };
-    loadMasters();
-  }, []);
 
   // メンバー更新
   const updateMember = (index: number, updates: Partial<MemberState>) => {

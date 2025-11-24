@@ -21,7 +21,8 @@ import {
   type FavoriteSearch,
 } from '../api/favorites';
 import { type StrategyListItem } from '../api/strategies';
-import { fetchMonsters, fetchWeapons, type Monster, type Weapon } from '../api/masters';
+import { type Monster, type Weapon } from '../api/masters';
+import { useMonsters, useWeapons } from '../hooks/useMasters';
 import StrategyCard from '../components/features/StrategyCard';
 import type { RootStackParamList } from '../navigation/RootNavigator';
 
@@ -36,10 +37,12 @@ export default function FavoritesScreen() {
   const [activeTab, setActiveTab] = useState<TabType>('strategies');
   const [strategies, setStrategies] = useState<StrategyListItem[]>([]);
   const [searches, setSearches] = useState<FavoriteSearch[]>([]);
-  const [monsters, setMonsters] = useState<Monster[]>([]);
-  const [weapons, setWeapons] = useState<Weapon[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+
+  // マスタデータ（React Queryでキャッシュ）
+  const { data: monsters = [] } = useMonsters();
+  const { data: weapons = [] } = useWeapons();
 
   const loadData = async () => {
     if (!user) {
@@ -48,17 +51,13 @@ export default function FavoritesScreen() {
     }
 
     try {
-      const [strategiesData, searchesData, monstersData, weaponsData] = await Promise.all([
+      const [strategiesData, searchesData] = await Promise.all([
         fetchFavoriteStrategies(user.id),
         fetchFavoriteSearches(user.id),
-        fetchMonsters(),
-        fetchWeapons(),
       ]);
 
       setStrategies(strategiesData);
       setSearches(searchesData);
-      setMonsters(monstersData);
-      setWeapons(weaponsData);
     } catch (error) {
       console.error('Load favorites error:', error);
     } finally {
