@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -11,11 +11,11 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { colors, fontSize, spacing } from '../constants/colors';
 import { useAuth } from '../contexts/AuthContext';
 import {
-  fetchStrategy,
   updateStrategy,
   type StrategyMemberInput,
   type StrategyType,
 } from '../api/strategies';
+import { useStrategy, useInvalidateStrategy } from '../hooks/useStrategy';
 import StrategyForm, {
   type StrategyFormData,
   type MemberState,
@@ -33,54 +33,36 @@ export default function StrategyEditScreen() {
 
   const { strategy_no } = route.params;
 
-  // 初期データ
-  const [initialData, setInitialData] = useState<StrategyFormData | null>(null);
-  const [loading, setLoading] = useState(true);
+  // React Queryでキャッシュ化されたデータ取得
+  const { data: strategyData, isLoading, isError } = useStrategy(strategy_no);
+  const { invalidate } = useInvalidateStrategy();
+
   const [submitting, setSubmitting] = useState(false);
 
-  // 攻略情報を読み込み
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        const result = await fetchStrategy(strategy_no);
-        if (result) {
-          // メンバーデータを変換
-          const membersData: MemberState[] = [0, 1, 2, 3].map((index) => {
-            const member = result.members.find((m) => m.member_order === index + 1);
-            if (member) {
-              return {
-                weapon_no: member.weapon_no,
-                job_no: member.job_no,
-                screenshot_front_uri: member.screenshot_front_url,
-                screenshot_back_uri: member.screenshot_back_url,
-              };
-            }
-            return { ...initialMemberState };
-          });
+  // 初期データをメモ化
+  const initialData = useMemo((): StrategyFormData | null => {
+    if (!strategyData) return null;
 
-          setInitialData({
-            monsterNo: result.strategy.monster_no,
-            strategyType: result.strategy.strategy_type as StrategyType,
-            actionDescription: result.strategy.action_description || '',
-            members: membersData,
-          });
-        } else {
-          Alert.alert('エラー', '攻略情報が見つかりません', [
-            { text: 'OK', onPress: () => navigation.goBack() },
-          ]);
-        }
-      } catch (error) {
-        console.error('Load strategy error:', error);
-        Alert.alert('エラー', 'データの読み込みに失敗しました', [
-          { text: 'OK', onPress: () => navigation.goBack() },
-        ]);
-      } finally {
-        setLoading(false);
+    const membersData: MemberState[] = [0, 1, 2, 3].map((index) => {
+      const member = strategyData.members.find((m) => m.member_order === index + 1);
+      if (member) {
+        return {
+          weapon_no: member.weapon_no,
+          job_no: member.job_no,
+          screenshot_front_uri: member.screenshot_front_url,
+          screenshot_back_uri: member.screenshot_back_url,
+        };
       }
-    };
+      return { ...initialMemberState };
+    });
 
-    loadData();
-  }, [strategy_no]);
+    return {
+      monsterNo: strategyData.strategy.monster_no,
+      strategyType: strategyData.strategy.strategy_type as StrategyType,
+      actionDescription: strategyData.strategy.action_description || '',
+      members: membersData,
+    };
+  }, [strategyData]);
 
   // バリデーションエラー
   const handleValidationError = (message: string) => {
@@ -111,6 +93,8 @@ export default function StrategyEditScreen() {
       });
 
       if (result.success) {
+        // キャッシュを無効化して最新データを取得できるようにする
+        invalidate(strategy_no);
         Alert.alert('完了', '攻略情報を更新しました', [
           {
             text: 'OK',
@@ -127,7 +111,7 @@ export default function StrategyEditScreen() {
     }
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={colors.primary} />
@@ -136,7 +120,7 @@ export default function StrategyEditScreen() {
     );
   }
 
-  if (!initialData) {
+  if (isError || !initialData) {
     return (
       <View style={styles.errorContainer}>
         <Text style={styles.errorText}>データを読み込めませんでした</Text>

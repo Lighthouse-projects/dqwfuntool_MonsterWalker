@@ -12,21 +12,16 @@ import {
 import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, fontSize, spacing } from '../constants/colors';
-import { fetchStrategy, strategyTypeLabels, type Strategy, type StrategyMember } from '../api/strategies';
-import { fetchMonsters, fetchWeapons, fetchJobs, monsterCategoryLabels, type Monster, type Weapon, type Job } from '../api/masters';
+import { strategyTypeLabels } from '../api/strategies';
+import { monsterCategoryLabels, type Monster, type Weapon, type Job } from '../api/masters';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../config/supabase';
 import { checkFavoriteStrategy, addFavoriteStrategy, removeFavoriteStrategy } from '../api/favorites';
+import { useStrategy } from '../hooks/useStrategy';
+import { useMasters } from '../hooks/useMasters';
 import type { RootStackParamList } from '../navigation/RootNavigator';
 
 type RouteParams = RouteProp<RootStackParamList, 'StrategyDetail'>;
-
-interface StrategyDetailData {
-  strategy: Strategy;
-  members: StrategyMember[];
-  monster: Monster | null;
-  user: { nickname: string | null; avatar_url: string | null } | null;
-}
 
 export default function StrategyDetailScreen() {
   const route = useRoute<RouteParams>();
@@ -34,83 +29,76 @@ export default function StrategyDetailScreen() {
   const { user } = useAuth();
   const { strategy_no } = route.params;
 
-  const [data, setData] = useState<StrategyDetailData | null>(null);
-  const [weapons, setWeapons] = useState<Weapon[]>([]);
-  const [jobs, setJobs] = useState<Job[]>([]);
-  const [loading, setLoading] = useState(true);
+  // React Queryでキャッシュ化されたデータ取得
+  const { data: strategyData, isLoading: loadingStrategy, isError } = useStrategy(strategy_no);
+  const { monsters, weapons, jobs, isLoading: loadingMasters } = useMasters();
+
+  // プロフィール情報（strategy_no単位でキャッシュ）
+  const [profileCache, setProfileCache] = useState<Record<number, { nickname: string | null; avatar_url: string | null } | null>>({});
+  const [loadingProfile, setLoadingProfile] = useState(false);
+
+  // いいね・お気に入り状態
   const [isLiked, setIsLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
   const [likeLoading, setLikeLoading] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);
   const [favoriteLoading, setFavoriteLoading] = useState(false);
+  const [loadedStrategyNo, setLoadedStrategyNo] = useState<number | null>(null);
 
+  // プロフィールといいね・お気に入り状態を取得
   useEffect(() => {
-    loadData();
-  }, [strategy_no]);
+    if (!strategyData) return;
+    // 同じstrategy_noで既にロード済みならスキップ
+    if (loadedStrategyNo === strategy_no) return;
 
-  const loadData = async () => {
-    setLoading(true);
-    try {
-      // 攻略情報を取得
-      const strategyData = await fetchStrategy(strategy_no);
-      if (!strategyData) {
-        Alert.alert('エラー', '攻略情報が見つかりませんでした', [
-          { text: 'OK', onPress: () => navigation.goBack() },
-        ]);
-        return;
-      }
-
-      // マスタデータを取得
-      const [monstersData, weaponsData, jobsData] = await Promise.all([
-        fetchMonsters(),
-        fetchWeapons(),
-        fetchJobs(),
-      ]);
-
-      setWeapons(weaponsData);
-      setJobs(jobsData);
-
-      // モンスター情報
-      const monster = monstersData.find(m => m.monster_no === strategyData.strategy.monster_no) || null;
-
-      // ユーザー情報を取得
-      const { data: profileData } = await supabase
-        .from('profiles')
-        .select('nickname, avatar_url')
-        .eq('user_id', strategyData.strategy.user_id)
-        .single();
-
-      setData({
-        strategy: strategyData.strategy,
-        members: strategyData.members,
-        monster,
-        user: profileData,
-      });
-
-      setLikeCount(strategyData.strategy.like_count);
-
-      // いいね・お気に入り状態を確認
-      if (user) {
-        const { data: likeData } = await supabase
-          .from('mw_likes')
-          .select('like_no')
-          .eq('strategy_no', strategy_no)
-          .eq('user_id', user.id)
+    const loadAdditionalData = async () => {
+      setLoadingProfile(true);
+      try {
+        // ユーザー情報を取得
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('nickname, avatar_url')
+          .eq('user_id', strategyData.strategy.user_id)
           .single();
+        setProfileCache(prev => ({ ...prev, [strategy_no]: profile }));
 
-        setIsLiked(!!likeData);
+        setLikeCount(strategyData.strategy.like_count);
 
-        // お気に入り状態を確認
-        const isFav = await checkFavoriteStrategy(user.id, strategy_no);
-        setIsFavorite(isFav);
+        // いいね・お気に入り状態を確認
+        if (user) {
+          const { data: likeData } = await supabase
+            .from('mw_likes')
+            .select('like_no')
+            .eq('strategy_no', strategy_no)
+            .eq('user_id', user.id)
+            .single();
+          setIsLiked(!!likeData);
+
+          const isFav = await checkFavoriteStrategy(user.id, strategy_no);
+          setIsFavorite(isFav);
+        }
+        setLoadedStrategyNo(strategy_no);
+      } catch (error) {
+        console.error('Load additional data error:', error);
+      } finally {
+        setLoadingProfile(false);
       }
-    } catch (error) {
-      console.error('Load error:', error);
-      Alert.alert('エラー', 'データの読み込みに失敗しました');
-    } finally {
-      setLoading(false);
+    };
+
+    loadAdditionalData();
+  }, [strategyData, user, strategy_no, loadedStrategyNo]);
+
+  // 現在の攻略情報に対応するプロフィール
+  const profileData = profileCache[strategy_no] ?? null;
+
+  // エラー処理
+  useEffect(() => {
+    if (isError || (!loadingStrategy && !strategyData)) {
+      Alert.alert('エラー', '攻略情報が見つかりませんでした', [
+        { text: 'OK', onPress: () => navigation.goBack() },
+      ]);
     }
-  };
+  }, [isError, loadingStrategy, strategyData]);
 
   const handleLike = async () => {
     if (!user) {
@@ -213,6 +201,9 @@ export default function StrategyDetailScreen() {
     return job?.job_name || '不明';
   };
 
+  // メインデータのローディング（プロフィールは後から表示）
+  const loading = loadingStrategy || loadingMasters;
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -222,7 +213,7 @@ export default function StrategyDetailScreen() {
     );
   }
 
-  if (!data) {
+  if (!strategyData) {
     return (
       <View style={styles.loadingContainer}>
         <Text style={styles.loadingText}>データが見つかりません</Text>
@@ -230,7 +221,8 @@ export default function StrategyDetailScreen() {
     );
   }
 
-  const { strategy, members, monster } = data;
+  const { strategy, members } = strategyData;
+  const monster = monsters.find(m => m.monster_no === strategy.monster_no) || null;
   const categoryLabel = monster ? monsterCategoryLabels[monster.monster_category] : '';
   const typeLabel = strategyTypeLabels[strategy.strategy_type];
 
@@ -251,14 +243,14 @@ export default function StrategyDetailScreen() {
         {/* ユーザー情報 */}
         <View style={styles.userSection}>
           <View style={styles.userInfo}>
-            {data.user?.avatar_url ? (
-              <Image source={{ uri: data.user.avatar_url }} style={styles.avatar} />
+            {profileData?.avatar_url ? (
+              <Image source={{ uri: profileData.avatar_url }} style={styles.avatar} />
             ) : (
               <View style={styles.avatarPlaceholder}>
                 <Ionicons name="person" size={16} color={colors.textSecondary} />
               </View>
             )}
-            <Text style={styles.nickname}>{data.user?.nickname || '名無し'}</Text>
+            <Text style={styles.nickname}>{profileData?.nickname || '名無し'}</Text>
           </View>
           <Text style={styles.createdAt}>
             {new Date(strategy.created_at).toLocaleDateString('ja-JP')}
