@@ -28,6 +28,12 @@
     },
     "plugins": [
       "expo-secure-store"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "29e6272f-a440-478f-b665-ec528d220c3c"
+      }
+    },
+    "owner": "kiku365"
   }
 }
