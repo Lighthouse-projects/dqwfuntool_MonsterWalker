@@ -262,7 +262,7 @@ export default function StrategyForm({
       {/* モーダル */}
       <SelectModal
         visible={monsterModalVisible}
-        title="モンスター選択"
+        title="モンスターを選択"
         options={monsterOptions}
         selectedValue={monsterNo}
         onSelect={setMonsterNo}
@@ -272,7 +272,7 @@ export default function StrategyForm({
 
       <SelectModal
         visible={weaponModalVisible}
-        title="武器選択"
+        title="武器を選択"
         options={weaponOptions}
         selectedValue={members[activeMemberIndex]?.weapon_no ?? null}
         onSelect={(value) => updateMember(activeMemberIndex, { weapon_no: value })}
@@ -281,7 +281,7 @@ export default function StrategyForm({
 
       <SelectModal
         visible={jobModalVisible}
-        title="職業選択"
+        title="職業を選択"
         options={jobOptions}
         selectedValue={members[activeMemberIndex]?.job_no ?? null}
         onSelect={(value) => updateMember(activeMemberIndex, { job_no: value })}
