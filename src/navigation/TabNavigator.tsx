@@ -5,7 +5,7 @@ import { colors } from '../constants/colors';
 
 import HomeScreen from '../screens/HomeScreen';
 import FavoritesScreen from '../screens/FavoritesScreen';
-import RegisterScreen from '../screens/RegisterScreen';
+import StrategyRegisterScreen from '../screens/StrategyRegisterScreen';
 import RankingScreen from '../screens/RankingScreen';
 import MyPageScreen from '../screens/MyPageScreen';
 
@@ -57,10 +57,10 @@ export default function TabNavigator() {
       />
       <Tab.Screen
         name="Register"
-        component={RegisterScreen}
+        component={StrategyRegisterScreen}
         options={{
           title: '登録',
-          tabBarIcon: ({ color, size }) => (
+          tabBarIcon: () => (
             <MaterialIcons name="add-circle" size={32} color={colors.primary} />
           ),
         }}

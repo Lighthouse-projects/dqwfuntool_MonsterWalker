@@ -14,6 +14,7 @@ import MyStrategiesScreen from '../screens/MyStrategiesScreen';
 import LikedStrategiesScreen from '../screens/LikedStrategiesScreen';
 import RequestSubmitScreen from '../screens/RequestSubmitScreen';
 import RequestListScreen from '../screens/RequestListScreen';
+import StrategyEditScreen from '../screens/StrategyEditScreen';
 
 export type RootStackParamList = {
   Main: undefined;
@@ -24,6 +25,7 @@ export type RootStackParamList = {
   PrivacyPolicy: undefined;
   ProfileEdit: undefined;
   StrategyDetail: { strategy_no: number };
+  StrategyEdit: { strategy_no: number };
   MyStrategies: undefined;
   LikedStrategies: undefined;
   RequestSubmit: undefined;
@@ -91,6 +93,11 @@ export default function RootNavigator() {
           name="StrategyDetail"
           component={StrategyDetailScreen}
           options={{ title: '攻略情報' }}
+        />
+        <Stack.Screen
+          name="StrategyEdit"
+          component={StrategyEditScreen}
+          options={{ title: '攻略情報編集' }}
         />
         <Stack.Screen
           name="MyStrategies"

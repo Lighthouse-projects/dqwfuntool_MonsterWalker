@@ -8,7 +8,6 @@ import {
   ActivityIndicator,
   RefreshControl,
   Alert,
-  Image,
 } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -65,6 +64,10 @@ export default function MyStrategiesScreen() {
     navigation.navigate('StrategyDetail', { strategy_no: item.strategy_no });
   };
 
+  const handleEdit = (item: StrategyListItem) => {
+    navigation.navigate('StrategyEdit', { strategy_no: item.strategy_no });
+  };
+
   const handleDelete = (item: StrategyListItem) => {
     Alert.alert(
       '削除確認',
@@ -118,12 +121,20 @@ export default function MyStrategiesScreen() {
           </View>
         </View>
 
-        <TouchableOpacity
-          style={styles.deleteButton}
-          onPress={() => handleDelete(item)}
-        >
-          <Ionicons name="trash-outline" size={20} color={colors.error} />
-        </TouchableOpacity>
+        <View style={styles.actionButtons}>
+          <TouchableOpacity
+            style={styles.editButton}
+            onPress={() => handleEdit(item)}
+          >
+            <Ionicons name="create-outline" size={20} color={colors.primary} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.deleteButton}
+            onPress={() => handleDelete(item)}
+          >
+            <Ionicons name="trash-outline" size={20} color={colors.error} />
+          </TouchableOpacity>
+        </View>
       </TouchableOpacity>
     );
   };
@@ -258,9 +269,15 @@ const styles = StyleSheet.create({
     fontSize: fontSize.xs,
     color: colors.textSecondary,
   },
+  actionButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  editButton: {
+    padding: spacing.sm,
+  },
   deleteButton: {
     padding: spacing.sm,
-    marginLeft: spacing.sm,
   },
   emptyContainer: {
     flex: 1,

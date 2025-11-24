@@ -478,6 +478,110 @@ export async function fetchLikedStrategies(
   }
 }
 
+// 攻略情報更新
+export async function updateStrategy(
+  strategyNo: number,
+  userId: string,
+  input: StrategyInput
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    // NGワードチェック
+    if (input.action_description) {
+      const hasNgWord = await checkNgWords(input.action_description);
+      if (hasNgWord) {
+        return { success: false, error: '不適切な文言が含まれています' };
+      }
+    }
+
+    // 攻略情報を更新
+    const { error: strategyError } = await supabase
+      .from('mw_strategies')
+      .update({
+        monster_no: input.monster_no,
+        strategy_type: input.strategy_type,
+        action_description: input.action_description || null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('strategy_no', strategyNo)
+      .eq('user_id', userId);
+
+    if (strategyError) {
+      console.error('Strategy update error:', strategyError);
+      return { success: false, error: '更新に失敗しました' };
+    }
+
+    // 既存のメンバーを削除
+    const { error: deleteError } = await supabase
+      .from('mw_strategy_members')
+      .delete()
+      .eq('strategy_no', strategyNo);
+
+    if (deleteError) {
+      console.error('Member delete error:', deleteError);
+      return { success: false, error: 'メンバー情報の更新に失敗しました' };
+    }
+
+    // パーティメンバーを新規登録
+    for (const member of input.members) {
+      let screenshotFrontUrl: string | null = null;
+      let screenshotBackUrl: string | null = null;
+
+      // スクリーンショットをアップロード
+      if (member.screenshot_front_uri) {
+        // file:// で始まる場合はローカルファイルなのでアップロード
+        if (member.screenshot_front_uri.startsWith('file://')) {
+          screenshotFrontUrl = await uploadScreenshot(
+            userId,
+            strategyNo,
+            member.member_order,
+            'front',
+            member.screenshot_front_uri
+          );
+        } else {
+          // 既存のURLをそのまま使用
+          screenshotFrontUrl = member.screenshot_front_uri;
+        }
+      }
+
+      if (member.screenshot_back_uri) {
+        if (member.screenshot_back_uri.startsWith('file://')) {
+          screenshotBackUrl = await uploadScreenshot(
+            userId,
+            strategyNo,
+            member.member_order,
+            'back',
+            member.screenshot_back_uri
+          );
+        } else {
+          screenshotBackUrl = member.screenshot_back_uri;
+        }
+      }
+
+      // メンバー情報を登録
+      const { error: memberError } = await supabase
+        .from('mw_strategy_members')
+        .insert({
+          strategy_no: strategyNo,
+          member_order: member.member_order,
+          weapon_no: member.weapon_no,
+          job_no: member.job_no,
+          screenshot_front_url: screenshotFrontUrl,
+          screenshot_back_url: screenshotBackUrl,
+        });
+
+      if (memberError) {
+        console.error('Member insert error:', memberError);
+        return { success: false, error: 'メンバー情報の登録に失敗しました' };
+      }
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error('Update strategy error:', error);
+    return { success: false, error: '更新に失敗しました' };
+  }
+}
+
 // 攻略情報削除（物理削除）
 export async function deleteStrategy(
   strategyNo: number,

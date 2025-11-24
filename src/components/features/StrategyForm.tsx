@@ -6,13 +6,9 @@ import {
   ScrollView,
   TouchableOpacity,
   TextInput,
-  Alert,
   ActivityIndicator,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { colors, fontSize, spacing } from '../constants/colors';
-import { useAuth } from '../contexts/AuthContext';
+import { colors, fontSize, spacing } from '../../constants/colors';
 import {
   fetchMonsters,
   fetchWeapons,
@@ -22,37 +18,52 @@ import {
   type Monster,
   type Weapon,
   type Job,
-} from '../api/masters';
+} from '../../api/masters';
 import {
-  createStrategy,
   strategyTypeLabels,
   type StrategyType,
-  type StrategyMemberInput,
-} from '../api/strategies';
-import SelectModal from '../components/common/SelectModal';
-import PartyMemberInput from '../components/features/PartyMemberInput';
-import type { RootStackParamList } from '../navigation/RootNavigator';
+} from '../../api/strategies';
+import SelectModal from '../common/SelectModal';
+import PartyMemberInput from './PartyMemberInput';
 
-type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
-
-interface MemberState {
+export interface MemberState {
   weapon_no: number | null;
   job_no: number | null;
   screenshot_front_uri: string | null;
   screenshot_back_uri: string | null;
 }
 
-const initialMemberState: MemberState = {
+export const initialMemberState: MemberState = {
   weapon_no: null,
   job_no: null,
   screenshot_front_uri: null,
   screenshot_back_uri: null,
 };
 
-export default function RegisterScreen() {
-  const navigation = useNavigation<NavigationProp>();
-  const { user } = useAuth();
+export interface StrategyFormData {
+  monsterNo: number | null;
+  strategyType: StrategyType;
+  actionDescription: string;
+  members: MemberState[];
+}
 
+interface StrategyFormProps {
+  mode: 'create' | 'edit';
+  initialData?: StrategyFormData;
+  submitLabel: string;
+  submitting: boolean;
+  onSubmit: (data: StrategyFormData) => void;
+  onValidationError: (message: string) => void;
+}
+
+export default function StrategyForm({
+  mode,
+  initialData,
+  submitLabel,
+  submitting,
+  onSubmit,
+  onValidationError,
+}: StrategyFormProps) {
   // マスタデータ
   const [monsters, setMonsters] = useState<Monster[]>([]);
   const [weapons, setWeapons] = useState<Weapon[]>([]);
@@ -60,15 +71,17 @@ export default function RegisterScreen() {
   const [loadingMasters, setLoadingMasters] = useState(true);
 
   // フォーム状態
-  const [monsterNo, setMonsterNo] = useState<number | null>(null);
-  const [strategyType, setStrategyType] = useState<StrategyType>('oneshot');
-  const [actionDescription, setActionDescription] = useState('');
-  const [members, setMembers] = useState<MemberState[]>([
-    { ...initialMemberState },
-    { ...initialMemberState },
-    { ...initialMemberState },
-    { ...initialMemberState },
-  ]);
+  const [monsterNo, setMonsterNo] = useState<number | null>(initialData?.monsterNo ?? null);
+  const [strategyType, setStrategyType] = useState<StrategyType>(initialData?.strategyType ?? 'oneshot');
+  const [actionDescription, setActionDescription] = useState(initialData?.actionDescription ?? '');
+  const [members, setMembers] = useState<MemberState[]>(
+    initialData?.members ?? [
+      { ...initialMemberState },
+      { ...initialMemberState },
+      { ...initialMemberState },
+      { ...initialMemberState },
+    ]
+  );
 
   // モーダル状態
   const [monsterModalVisible, setMonsterModalVisible] = useState(false);
@@ -76,8 +89,15 @@ export default function RegisterScreen() {
   const [jobModalVisible, setJobModalVisible] = useState(false);
   const [activeMemberIndex, setActiveMemberIndex] = useState(0);
 
-  // 送信状態
-  const [submitting, setSubmitting] = useState(false);
+  // 初期データが変更された場合にフォームを更新
+  useEffect(() => {
+    if (initialData) {
+      setMonsterNo(initialData.monsterNo);
+      setStrategyType(initialData.strategyType);
+      setActionDescription(initialData.actionDescription);
+      setMembers(initialData.members);
+    }
+  }, [initialData]);
 
   // マスタデータ読み込み
   useEffect(() => {
@@ -92,18 +112,13 @@ export default function RegisterScreen() {
         setWeapons(weaponsData);
         setJobs(jobsData);
       } catch (error) {
-        Alert.alert('エラー', 'データの読み込みに失敗しました');
+        onValidationError('データの読み込みに失敗しました');
       } finally {
         setLoadingMasters(false);
       }
     };
     loadMasters();
   }, []);
-
-  // 未ログイン時はログイン画面へ
-  const handleLoginRequired = () => {
-    navigation.navigate('Login');
-  };
 
   // メンバー更新
   const updateMember = (index: number, updates: Partial<MemberState>) => {
@@ -124,62 +139,20 @@ export default function RegisterScreen() {
     setJobModalVisible(true);
   };
 
-  // 登録処理
-  const handleSubmit = async () => {
-    if (!user) {
-      handleLoginRequired();
-      return;
-    }
-
+  // 送信処理
+  const handleSubmit = () => {
     // バリデーション
     if (!monsterNo) {
-      Alert.alert('エラー', 'モンスターを選択してください');
+      onValidationError('モンスターを選択してください');
       return;
     }
 
-    setSubmitting(true);
-    try {
-      const memberInputs: StrategyMemberInput[] = members.map((member, index) => ({
-        member_order: index + 1,
-        weapon_no: member.weapon_no,
-        job_no: member.job_no,
-        screenshot_front_uri: member.screenshot_front_uri,
-        screenshot_back_uri: member.screenshot_back_uri,
-      }));
-
-      const result = await createStrategy(user.id, {
-        monster_no: monsterNo,
-        strategy_type: strategyType,
-        action_description: actionDescription || null,
-        members: memberInputs,
-      });
-
-      if (result.success) {
-        Alert.alert('完了', '攻略情報を登録しました', [
-          {
-            text: 'OK',
-            onPress: () => {
-              // フォームをリセット
-              setMonsterNo(null);
-              setStrategyType('oneshot');
-              setActionDescription('');
-              setMembers([
-                { ...initialMemberState },
-                { ...initialMemberState },
-                { ...initialMemberState },
-                { ...initialMemberState },
-              ]);
-            },
-          },
-        ]);
-      } else {
-        Alert.alert('エラー', result.error || '登録に失敗しました');
-      }
-    } catch (error) {
-      Alert.alert('エラー', '登録に失敗しました');
-    } finally {
-      setSubmitting(false);
-    }
+    onSubmit({
+      monsterNo,
+      strategyType,
+      actionDescription,
+      members,
+    });
   };
 
   // モンスター選択オプション
@@ -209,21 +182,6 @@ export default function RegisterScreen() {
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={colors.primary} />
         <Text style={styles.loadingText}>読み込み中...</Text>
-      </View>
-    );
-  }
-
-  // 未ログイン時の表示
-  if (!user) {
-    return (
-      <View style={styles.guestContainer}>
-        <Text style={styles.guestTitle}>攻略情報を登録</Text>
-        <Text style={styles.guestSubtitle}>
-          ログインして攻略情報を登録しよう
-        </Text>
-        <TouchableOpacity style={styles.loginButton} onPress={handleLoginRequired}>
-          <Text style={styles.loginButtonText}>ログイン / 新規登録</Text>
-        </TouchableOpacity>
       </View>
     );
   }
@@ -314,7 +272,7 @@ export default function RegisterScreen() {
         />
       </View>
 
-      {/* 登録ボタン */}
+      {/* 送信ボタン */}
       <TouchableOpacity
         style={[styles.submitButton, submitting && styles.buttonDisabled]}
         onPress={handleSubmit}
@@ -323,7 +281,7 @@ export default function RegisterScreen() {
         {submitting ? (
           <ActivityIndicator color={colors.background} />
         ) : (
-          <Text style={styles.submitButtonText}>登録</Text>
+          <Text style={styles.submitButtonText}>{submitLabel}</Text>
         )}
       </TouchableOpacity>
 
@@ -378,36 +336,6 @@ const styles = StyleSheet.create({
     fontSize: fontSize.md,
     color: colors.textSecondary,
     marginTop: spacing.md,
-  },
-  guestContainer: {
-    flex: 1,
-    backgroundColor: colors.background,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: spacing.lg,
-  },
-  guestTitle: {
-    fontSize: fontSize.xl,
-    fontWeight: 'bold',
-    color: colors.textPrimary,
-    marginBottom: spacing.sm,
-  },
-  guestSubtitle: {
-    fontSize: fontSize.md,
-    color: colors.textSecondary,
-    textAlign: 'center',
-    marginBottom: spacing.lg,
-  },
-  loginButton: {
-    backgroundColor: colors.primary,
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.xl,
-    borderRadius: 8,
-  },
-  loginButtonText: {
-    color: colors.background,
-    fontSize: fontSize.md,
-    fontWeight: 'bold',
   },
   section: {
     marginBottom: spacing.lg,
