@@ -14,20 +14,17 @@ import {
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { colors, fontSize, spacing } from '../../constants/colors';
 import { supabase } from '../../config/supabase';
-import { useAuth } from '../../contexts/AuthContext';
 
 type SignUpScreenProps = {
   navigation: NativeStackNavigationProp<any>;
 };
 
 export default function SignUpScreen({ navigation }: SignUpScreenProps) {
-  const { signInWithX } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [xLoading, setXLoading] = useState(false);
   const [errors, setErrors] = useState<{
     email?: string;
     password?: string;
@@ -106,30 +103,6 @@ export default function SignUpScreen({ navigation }: SignUpScreenProps) {
     }
   };
 
-  const handleXSignUp = async () => {
-    if (!agreedToTerms) {
-      Alert.alert('エラー', '利用規約とプライバシーポリシーに同意してください');
-      return;
-    }
-
-    setXLoading(true);
-    try {
-      const result = await signInWithX();
-
-      if (result.success) {
-        // 登録成功時はモーダルを閉じる
-        navigation.goBack();
-      } else if (result.error && result.error !== '認証がキャンセルされました') {
-        // キャンセル以外のエラーの場合はアラート表示
-        Alert.alert('エラー', result.error);
-      }
-    } catch (error) {
-      Alert.alert('エラー', '通信エラーが発生しました。しばらくしてから再度お試しください');
-    } finally {
-      setXLoading(false);
-    }
-  };
-
   const openTerms = () => {
     navigation.navigate('Terms');
   };
@@ -149,7 +122,10 @@ export default function SignUpScreen({ navigation }: SignUpScreenProps) {
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
       >
-        {/* 利用規約同意（共通・最上部） */}
+        {/* タイトル */}
+        <Text style={styles.title}>新規登録</Text>
+
+        {/* 利用規約同意 */}
         <View style={styles.termsContainer}>
           <TouchableOpacity
             style={styles.checkboxRow}
@@ -169,110 +145,76 @@ export default function SignUpScreen({ navigation }: SignUpScreenProps) {
           </TouchableOpacity>
         </View>
 
-        {/* X登録セクション */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Xアカウントで登録</Text>
-          <Text style={styles.sectionDescription}>
-            Xアカウントを使って簡単に登録できます
-          </Text>
-          <TouchableOpacity
-            style={[
-              styles.xButton,
-              (!agreedToTerms || xLoading) && styles.buttonDisabled,
-            ]}
-            onPress={handleXSignUp}
-            disabled={!agreedToTerms || xLoading}
-          >
-            {xLoading ? (
-              <ActivityIndicator color="#FFFFFF" />
-            ) : (
-              <Text style={styles.xButtonText}>𝕏 Xで登録</Text>
-            )}
-          </TouchableOpacity>
+        {/* メールアドレス */}
+        <View style={styles.inputContainer}>
+          <Text style={styles.label}>メールアドレス</Text>
+          <TextInput
+            style={[styles.input, errors.email && styles.inputError]}
+            placeholder="example@email.com"
+            placeholderTextColor={colors.placeholder}
+            value={email}
+            onChangeText={(text) => {
+              setEmail(text);
+              if (errors.email) setErrors({ ...errors, email: undefined });
+            }}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
+          {errors.email && <Text style={styles.errorText}>{errors.email}</Text>}
         </View>
 
-        {/* 区切り線 */}
-        <View style={styles.dividerContainer}>
-          <View style={styles.dividerLine} />
-          <Text style={styles.dividerText}>または</Text>
-          <View style={styles.dividerLine} />
+        {/* パスワード */}
+        <View style={styles.inputContainer}>
+          <Text style={styles.label}>パスワード（6文字以上）</Text>
+          <TextInput
+            style={[styles.input, errors.password && styles.inputError]}
+            placeholder="パスワード"
+            placeholderTextColor={colors.placeholder}
+            value={password}
+            onChangeText={(text) => {
+              setPassword(text);
+              if (errors.password) setErrors({ ...errors, password: undefined });
+            }}
+            secureTextEntry
+          />
+          {errors.password && <Text style={styles.errorText}>{errors.password}</Text>}
         </View>
 
-        {/* メール登録セクション */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>メールアドレスで登録</Text>
-
-          {/* メールアドレス */}
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>メールアドレス</Text>
-            <TextInput
-              style={[styles.input, errors.email && styles.inputError]}
-              placeholder="example@email.com"
-              placeholderTextColor={colors.placeholder}
-              value={email}
-              onChangeText={(text) => {
-                setEmail(text);
-                if (errors.email) setErrors({ ...errors, email: undefined });
-              }}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoCorrect={false}
-            />
-            {errors.email && <Text style={styles.errorText}>{errors.email}</Text>}
-          </View>
-
-          {/* パスワード */}
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>パスワード（6文字以上）</Text>
-            <TextInput
-              style={[styles.input, errors.password && styles.inputError]}
-              placeholder="パスワード"
-              placeholderTextColor={colors.placeholder}
-              value={password}
-              onChangeText={(text) => {
-                setPassword(text);
-                if (errors.password) setErrors({ ...errors, password: undefined });
-              }}
-              secureTextEntry
-            />
-            {errors.password && <Text style={styles.errorText}>{errors.password}</Text>}
-          </View>
-
-          {/* パスワード確認 */}
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>パスワード（確認）</Text>
-            <TextInput
-              style={[styles.input, errors.confirmPassword && styles.inputError]}
-              placeholder="パスワード（確認）"
-              placeholderTextColor={colors.placeholder}
-              value={confirmPassword}
-              onChangeText={(text) => {
-                setConfirmPassword(text);
-                if (errors.confirmPassword) setErrors({ ...errors, confirmPassword: undefined });
-              }}
-              secureTextEntry
-            />
-            {errors.confirmPassword && (
-              <Text style={styles.errorText}>{errors.confirmPassword}</Text>
-            )}
-          </View>
-
-          {/* 登録ボタン */}
-          <TouchableOpacity
-            style={[
-              styles.signUpButton,
-              (!isEmailFormValid || loading) && styles.buttonDisabled,
-            ]}
-            onPress={handleSignUp}
-            disabled={!isEmailFormValid || loading}
-          >
-            {loading ? (
-              <ActivityIndicator color={colors.background} />
-            ) : (
-              <Text style={styles.signUpButtonText}>メールアドレスで登録</Text>
-            )}
-          </TouchableOpacity>
+        {/* パスワード確認 */}
+        <View style={styles.inputContainer}>
+          <Text style={styles.label}>パスワード（確認）</Text>
+          <TextInput
+            style={[styles.input, errors.confirmPassword && styles.inputError]}
+            placeholder="パスワード（確認）"
+            placeholderTextColor={colors.placeholder}
+            value={confirmPassword}
+            onChangeText={(text) => {
+              setConfirmPassword(text);
+              if (errors.confirmPassword) setErrors({ ...errors, confirmPassword: undefined });
+            }}
+            secureTextEntry
+          />
+          {errors.confirmPassword && (
+            <Text style={styles.errorText}>{errors.confirmPassword}</Text>
+          )}
         </View>
+
+        {/* 登録ボタン */}
+        <TouchableOpacity
+          style={[
+            styles.signUpButton,
+            (!isEmailFormValid || loading) && styles.buttonDisabled,
+          ]}
+          onPress={handleSignUp}
+          disabled={!isEmailFormValid || loading}
+        >
+          {loading ? (
+            <ActivityIndicator color={colors.background} />
+          ) : (
+            <Text style={styles.signUpButtonText}>登録</Text>
+          )}
+        </TouchableOpacity>
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -329,34 +271,12 @@ const styles = StyleSheet.create({
   termsLink: {
     color: colors.info,
   },
-  section: {
-    marginBottom: spacing.lg,
-  },
-  sectionTitle: {
-    fontSize: fontSize.lg,
+  title: {
+    fontSize: fontSize.xl,
     fontWeight: 'bold',
     color: colors.textPrimary,
-    marginBottom: spacing.xs,
-  },
-  sectionDescription: {
-    fontSize: fontSize.sm,
-    color: colors.textSecondary,
-    marginBottom: spacing.md,
-  },
-  dividerContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: spacing.lg,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: colors.border,
-  },
-  dividerText: {
-    marginHorizontal: spacing.md,
-    fontSize: fontSize.sm,
-    color: colors.textSecondary,
+    textAlign: 'center',
+    marginBottom: spacing.xl,
   },
   inputContainer: {
     marginBottom: spacing.md,
@@ -390,23 +310,12 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     justifyContent: 'center',
     alignItems: 'center',
+    marginTop: spacing.md,
   },
   signUpButtonText: {
     fontSize: fontSize.md,
     fontWeight: 'bold',
     color: colors.background,
-  },
-  xButton: {
-    height: 50,
-    backgroundColor: '#000000',
-    borderRadius: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  xButtonText: {
-    fontSize: fontSize.md,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
   },
   buttonDisabled: {
     opacity: 0.6,

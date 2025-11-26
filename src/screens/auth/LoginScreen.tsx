@@ -15,7 +15,6 @@ import * as SecureStore from 'expo-secure-store';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { colors, fontSize, spacing } from '../../constants/colors';
 import { supabase } from '../../config/supabase';
-import { useAuth } from '../../contexts/AuthContext';
 
 const REMEMBER_ME_KEY = 'rememberMe';
 const SAVED_EMAIL_KEY = 'savedEmail';
@@ -26,12 +25,10 @@ type LoginScreenProps = {
 };
 
 export default function LoginScreen({ navigation }: LoginScreenProps) {
-  const { signInWithX } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [xLoading, setXLoading] = useState(false);
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
 
   // 保存されたログイン情報を読み込む
@@ -118,25 +115,6 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
     }
   };
 
-  const handleXLogin = async () => {
-    setXLoading(true);
-    try {
-      const result = await signInWithX();
-
-      if (result.success) {
-        // ログイン成功時はモーダルを閉じる
-        navigation.goBack();
-      } else if (result.error && result.error !== '認証がキャンセルされました') {
-        // キャンセル以外のエラーの場合はアラート表示
-        Alert.alert('エラー', result.error);
-      }
-    } catch (error) {
-      Alert.alert('エラー', '通信エラーが発生しました。しばらくしてから再度お試しください');
-    } finally {
-      setXLoading(false);
-    }
-  };
-
   return (
     <KeyboardAvoidingView
       style={styles.container}
@@ -205,19 +183,6 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
             <ActivityIndicator color={colors.background} />
           ) : (
             <Text style={styles.loginButtonText}>ログイン</Text>
-          )}
-        </TouchableOpacity>
-
-        {/* Xでログインボタン */}
-        <TouchableOpacity
-          style={[styles.xButton, xLoading && styles.buttonDisabled]}
-          onPress={handleXLogin}
-          disabled={xLoading}
-        >
-          {xLoading ? (
-            <ActivityIndicator color="#FFFFFF" />
-          ) : (
-            <Text style={styles.xButtonText}>𝕏 Xでログイン</Text>
           )}
         </TouchableOpacity>
 
@@ -317,25 +282,12 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: spacing.md,
+    marginBottom: spacing.lg,
   },
   loginButtonText: {
     fontSize: fontSize.md,
     fontWeight: 'bold',
     color: colors.background,
-  },
-  xButton: {
-    height: 50,
-    backgroundColor: '#000000',
-    borderRadius: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: spacing.lg,
-  },
-  xButtonText: {
-    fontSize: fontSize.md,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
   },
   buttonDisabled: {
     opacity: 0.6,

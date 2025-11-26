@@ -248,22 +248,6 @@ export default function ProfileEditScreen() {
         </View>
       </View>
 
-      {/* Xアカウント連携セクション */}
-      <View style={styles.xSection}>
-        <Text style={styles.sectionTitle}>Xアカウント連携</Text>
-        <View style={styles.xCard}>
-          <Text style={styles.xDescription}>
-            Xアカウントを連携すると、プロフィールにXアカウント名を表示できます。
-          </Text>
-          <TouchableOpacity
-            style={styles.xButton}
-            onPress={() => Alert.alert('準備中', 'この機能は準備中です')}
-          >
-            <Text style={styles.xButtonText}>𝕏 Xアカウントを連携</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-
       {/* 保存ボタン */}
       <TouchableOpacity
         style={[styles.saveButton, loading && styles.buttonDisabled]}
@@ -366,39 +350,6 @@ const styles = StyleSheet.create({
   charCount: {
     fontSize: fontSize.xs,
     color: colors.textSecondary,
-  },
-  // Xアカウントセクション
-  xSection: {
-    marginBottom: spacing.xl,
-  },
-  sectionTitle: {
-    fontSize: fontSize.md,
-    fontWeight: '600',
-    color: colors.textPrimary,
-    marginBottom: spacing.sm,
-  },
-  xCard: {
-    backgroundColor: colors.backgroundSecondary,
-    borderRadius: 12,
-    padding: spacing.md,
-  },
-  xDescription: {
-    fontSize: fontSize.sm,
-    color: colors.textSecondary,
-    marginBottom: spacing.md,
-    lineHeight: 20,
-  },
-  xButton: {
-    height: 44,
-    backgroundColor: '#000000',
-    borderRadius: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  xButtonText: {
-    fontSize: fontSize.md,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
   },
   // 保存ボタン
   saveButton: {
